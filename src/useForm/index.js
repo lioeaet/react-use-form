@@ -1,27 +1,22 @@
-import {
-  createContext,
-  useState,
-  useCallback,
-  useRef,
-  useContext,
-} from "react";
+import { createContext, useState, useCallback, useRef, useContext } from 'react'
 
-export const FormContext = createContext();
+export const FormContext = createContext()
 
 export function useForm({ initValues, validate, submit }) {
-  const [values, setValues] = useState(initValues);
+  const [values, setValues] = useState(initValues)
 
-  const valuesRef = useRef(values);
+  const valuesRef = useRef(values)
 
   const actions = {
-    change: (name, val) => {
-      valuesRef.current[name] = val;
-      setValues({ ...valuesRef.current });
-    },
-  };
+    change: useCallback((name, val) => {
+      valuesRef.current = { ...valuesRef.current }
+      valuesRef.current[name] = val
+      setValues(valuesRef.current)
+    }, []),
+  }
 
-  const Form = useCallback(() => {
-    return function Form({ children }) {
+  const Form = useCallback(
+    function Form({ children }) {
       return (
         <form>
           <FormContext.Provider
@@ -35,20 +30,22 @@ export function useForm({ initValues, validate, submit }) {
             {children}
           </FormContext.Provider>
         </form>
-      );
-    };
-  }, [actions.change]);
+      )
+    },
+    [actions.change]
+  )
 
-  return { Form };
+  return { Form, values }
 }
 
 export function useField(name) {
-  const { values, actions } = useContext(FormContext);
+  const { values, actions } = useContext(FormContext)
+  console.log(name)
 
   return {
     value: values[name],
-    onChange: function onChange(value) {
-      actions.change(name, value);
+    change: function onChange(value) {
+      actions.change(name, value)
     },
-  };
+  }
 }
