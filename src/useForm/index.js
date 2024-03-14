@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext } from 'react'
 import { useReducerWithRef } from './useReducerWithRef'
+import { getValidateField } from './validate'
 
 const getInitState = (initValues) =>
   initValues?.then
@@ -36,7 +37,10 @@ export function useForm({ initValues, validate, submit }) {
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    validate: useCallback((name) => {}, []),
+    validate: useCallback((name) => {
+      const validate = getValidateField(name, validate)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
     setLoader: useCallback((name, value) => {
       dispatch({
         type: 'change',
@@ -78,7 +82,7 @@ export function useForm({ initValues, validate, submit }) {
 
 export const FormContext = createContext()
 
-const reducer = (state, action) => {
+function reducer(state, action) {
   switch (action.type) {
     case 'change': {
       const { name, value } = action
