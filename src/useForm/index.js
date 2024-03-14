@@ -134,7 +134,7 @@ export function useField(name) {
 
   return {
     value: values[name],
-    change: function onChange(value) {
+    onChange: function onChange(value) {
       actions.change(name, value)
     },
   }

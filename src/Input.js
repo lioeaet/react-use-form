@@ -1,9 +1,12 @@
 import { useField } from './useForm'
 
 export function Input({ name, val, setVal }) {
-  const field = useField(name)
+  const { value, error, onChange } = useField(name)
 
   return (
-    <input value={field.value} onChange={(e) => field.change(e.target.value)} />
+    <div>
+      <input value={value} onChange={(e) => onChange(e.target.value)} />
+      <div>{error}</div>
+    </div>
   )
 }
