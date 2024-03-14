@@ -4,7 +4,6 @@ export const FormContext = createContext()
 
 export function useForm({ initValues, validate, submit }) {
   const [values, setValues] = useState(initValues)
-
   const valuesRef = useRef(values)
 
   const actions = {
@@ -35,12 +34,11 @@ export function useForm({ initValues, validate, submit }) {
     [actions.change]
   )
 
-  return { Form, values }
+  return { Form, values, actions }
 }
 
 export function useField(name) {
   const { values, actions } = useContext(FormContext)
-  console.log(name)
 
   return {
     value: values[name],

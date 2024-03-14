@@ -2,7 +2,7 @@ import { useForm } from './useForm'
 import { Input } from './Input'
 
 function App() {
-  const { Form, ...rest } = useForm({
+  const { Form } = useForm({
     initValues: {
       password: '',
       passwordRepeat: '',
@@ -13,8 +13,6 @@ function App() {
     },
     submit: console.log,
   })
-
-  console.log(rest)
 
   return (
     <Form>
