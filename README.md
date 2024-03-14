@@ -6,14 +6,14 @@ useForm
     field_1: func,
     field_2: array([]),
     password: advanced({
-      BLURED_TOUCH: validator,
+      DEFAULT: validator,
       BLUR: validator,
       SUBMIT: validator,
     }),
     deep: {
       repeat: advanced({
         INIT: validator,
-        BLURED_TOUCH: validator,
+        DEFAULT: validator,
         BLUR: validator,
         SUBMIT: validator
         // dependantFields срабатывает:
@@ -29,7 +29,7 @@ useForm
 
 const VALIDATION_TYPES = {
   INIT: Symbol('INIT'),
-  BLURED_TOUCH: Symbol('BLURED_TOUCH'),
+  DEFAULT: Symbol('DEFAULT'),
   BLUR: Symbol('BLUR'),
   SUBMIT: Symbol('SUBMIT'),
 }
@@ -39,8 +39,7 @@ const getInitState = initValues => ({
   submitting: false,
   submitted: false,
   failed: false,
-  focused: {},
-  touched: {},
+  canValidate: {},
   errors: {},
   loaders: {},
   initializing: false
@@ -48,7 +47,7 @@ const getInitState = initValues => ({
 
 // validators
 type ExtendedValidator = {
-  BLURED_TOUCH?: Validator,
+  DEFAULT?: Validator,
   BLUR?: Validator,
   SUBMIT?: Validator,
   dependantFields?: Entity(string, Validator)
