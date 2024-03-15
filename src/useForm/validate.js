@@ -14,4 +14,17 @@ export function array(field) {
   }
 }
 
-export function getValidateField(name, validate) {}
+export function getValidateField(
+  name,
+  validate,
+  values,
+  defaultValidationActiveFields
+) {
+  return name.split('.').reduce((current, name) => {
+    if (typeof current === 'function' || current.type === ADVANCED_VALIDATOR)
+      return current
+    return current[name]
+  }, validate)
+}
+
+export function defaultValidateField(name, validate, values) {}

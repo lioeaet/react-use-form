@@ -1,8 +1,13 @@
 useForm
 
-несколько слов о валидации
-1. Валидация по умолчанию происходит на change action поля после выполнения actions.enableDefaultValidation
-2. Функции валидации выставляются при инициализации. Для переустановки изначальных валидаторов есть функция reinitialize
+виды валидации
+1. Валидация поля становится доступной после одного из 3 экшнов: action.submit(), actions.validate(name), actions.enableValidation(name).
+2. Валидация по умолчанию происходит на action change поля после функцией actions.enableValidation().
+3. Функции валидации задаются при инициализации. Переустановка изначальных валидаторов происходит после выполнения reinitialize.
+4. Если у инпута задано несколько видов валидаторов, каждая выполнется в своё время.
+5. Связанные инпуты при изменении основных инпутов валидируются в то время, как если бы экшны выполнялись на них самих.
+6. Инпутам с типом валидации INIT валидация становится доступной при инициализации.
+7. Валидация связанных инпутов включеается отдельно от основного инпута.
 
 ({
   initValues: {} | Promise | [],
@@ -11,15 +16,15 @@ useForm
     field_2: array([]),
     password: advanced({
       DEFAULT: validator,
-      BLUR: validator,
-      SUBMIT: validator,
+      ENABLING: validator,
+      SUBMITTING: validator,
     }),
     deep: {
       repeat: advanced({
         INIT: validator,
         DEFAULT: validator,
-        BLUR: validator,
-        SUBMIT: validator
+        ENABLING: validator,
+        SUBMITTING: validator
         // dependantFields срабатывает:
         // при валидации поля password, если уже была запущена валидация на deep.repeat
         // deep.repeat так же валидируем на изменение deep
@@ -28,14 +33,14 @@ useForm
       })
     }
   } | Promise | array([]),
-  submit: func
+  submitting: func
 }) => [Form, state, actions]
 
 const VALIDATION_TYPES = {
   INIT: Symbol('INIT'),
   DEFAULT: Symbol('DEFAULT'),
-  BLUR: Symbol('BLUR'),
-  SUBMIT: Symbol('SUBMIT'),
+  ENABLING: Symbol('ENABLING'),
+  SUBMITTING: Symbol('SUBMITTING'),
 }
 
 const getInitState = initValues => ({
@@ -52,8 +57,8 @@ const getInitState = initValues => ({
 // validators
 type ExtendedValidator = {
   DEFAULT?: Validator,
-  BLUR?: Validator,
-  SUBMIT?: Validator,
+  ENABLING?: Validator,
+  SUBMITTING?: Validator,
   dependantFields?: Entity(string, Validator)
 }
 

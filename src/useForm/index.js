@@ -10,7 +10,7 @@ const getInitState = (initValues) =>
         submitting: false,
         submitted: false,
         failed: false,
-        defaultValidationEnabled: {},
+        validationEnabled: {},
         errors: {},
         loaders: {},
       }
@@ -30,15 +30,15 @@ export function useForm({ initValues, validate, submit }) {
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    enableDefaultValidation: useCallback((name) => {
+    enableValidation: useCallback((name) => {
       dispatch({
-        type: 'enable default validation',
+        type: 'enable validation',
         name,
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
-      const validate = getValidateField(name, validate)
+      getValidateField(name, validate)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     setLoader: useCallback((name, value) => {
@@ -94,12 +94,12 @@ function reducer(state, action) {
         },
       }
     }
-    case 'enable default validation': {
+    case 'enable validation': {
       const { name } = action
       return {
         ...state,
-        defaultValidationEnabled: {
-          ...state.defaultValidationEnabled,
+        validationEnabled: {
+          ...state.validationEnabled,
           [name]: true,
         },
       }
