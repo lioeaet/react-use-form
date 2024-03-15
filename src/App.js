@@ -17,7 +17,7 @@ function App() {
   return (
     <Form>
       <Input name="password" />
-      <Input name="passwordRepeat" />
+      <Input name="password.repeat" />
     </Form>
   )
 }

@@ -14,17 +14,25 @@ export function array(field) {
   }
 }
 
-export function getValidateField(
-  name,
-  validate,
-  values,
-  defaultValidationActiveFields
-) {
-  return name.split('.').reduce((current, name) => {
-    if (typeof current === 'function' || current.type === ADVANCED_VALIDATOR)
-      return current
-    return current[name]
-  }, validate)
+// password, password.repeat, passwords[12].repeat
+export function getValidateField(name, validators) {
+  return name
+    .split('.')
+    .reduce(
+      (current, name) =>
+        typeof current === 'function' || current?.type === ADVANCED_VALIDATOR
+          ? current
+          : current?.[name],
+      validators
+    )
 }
 
-export function defaultValidateField(name, validate, values) {}
+export function defaultValidateField(name, values, validateField) {}
+
+export function getFieldFromInst(name, inst) {
+  return name.split('.').reduce((current, name) => current?.[name], inst)
+}
+
+// export function defaultValidateField(name, validate, values) {
+//   if ()
+// }

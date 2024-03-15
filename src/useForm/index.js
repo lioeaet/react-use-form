@@ -15,7 +15,7 @@ const getInitState = (initValues) =>
         loaders: {},
       }
 
-export function useForm({ initValues, validate, submit }) {
+export function useForm({ initValues, validators, submit }) {
   const [state, dispatch, stateRef] = useReducerWithRef(
     reducer,
     getInitState(initValues)
@@ -23,6 +23,7 @@ export function useForm({ initValues, validate, submit }) {
 
   const actions = {
     change: useCallback((name, value) => {
+      console.log(getValidateField(name, validators))
       dispatch({
         type: 'change',
         name,
@@ -38,7 +39,8 @@ export function useForm({ initValues, validate, submit }) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
-      getValidateField(name, validate)
+      const validateField = getValidateField(name, validators)
+      validateField()
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     setLoader: useCallback((name, value) => {
