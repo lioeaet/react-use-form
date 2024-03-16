@@ -12,8 +12,14 @@ function App() {
       passwordRepeat: advanced({
         DEFAULT: [
           (value) => !value && 'should not be empty',
-          (val, password) =>
-            val === password || 'should be equal with password',
+          (val, password) => {
+            // console.log(
+            //   val,
+            //   password,
+            //   val !== password && 'should be equal with password'
+            // )
+            return val !== password && 'should be equal with password'
+          },
         ],
         PARENTS: ['password'],
       }),

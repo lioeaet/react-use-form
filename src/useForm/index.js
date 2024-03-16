@@ -1,6 +1,10 @@
 import { createContext, useCallback, useContext, useRef } from 'react'
 import { useReducerWithRef } from './useReducerWithRef'
-import { getFieldsValidateOnChange, execValidate } from './validate'
+import {
+  ADVANCED_VALIDATOR,
+  getFieldsValidateOnChange,
+  execValidate,
+} from './validate'
 import { iterateDeep, getFieldFromInst } from './util'
 
 const getInitState = (initValues) =>
@@ -15,8 +19,6 @@ const getInitState = (initValues) =>
         errors: {},
         loaders: {},
       }
-
-let prevDis
 
 export function useForm({ initValues, validators, submit }) {
   const [state, dispatch, stateRef] = useReducerWithRef(
@@ -164,8 +166,6 @@ function reducer(state, action) {
       throw new Error('unknown action')
   }
 }
-
-const ADVANCED_VALIDATOR = Symbol('ADVANCED_VALIDATOR')
 
 export const advanced = (validatorObj) => ({
   ...validatorObj,
