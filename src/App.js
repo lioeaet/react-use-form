@@ -8,8 +8,15 @@ function App() {
       passwordRepeat: '',
     },
     validate: {
-      password: () => {},
-      passwordRepeat: () => {},
+      password: (val) => val || 'should not be empty',
+      passwordRepeat: {
+        DEFAULT: [
+          (val) => val || 'should not be empty',
+          (val, password) =>
+            val === password || 'should be equal with password',
+        ],
+        PARENTS: ['password'],
+      },
     },
     submit: console.log,
   })

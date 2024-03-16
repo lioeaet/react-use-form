@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext } from 'react'
+import { createContext, useCallback, useContext, useRef } from 'react'
 import { useReducerWithRef } from './useReducerWithRef'
-import { getValidateField } from './validate'
+import { getFieldsValidateOnChange } from './validate'
 
 const getInitState = (initValues) =>
   initValues?.then
@@ -20,15 +20,40 @@ export function useForm({ initValues, validators, submit }) {
     reducer,
     getInitState(initValues)
   )
+  // для ликвидации состояния гонки
+  const activePromisesRef = useRef({})
 
   const actions = {
     change: useCallback((name, value) => {
-      console.log(getValidateField(name, validators))
+      // здесь валидируются
+      // 1. Само поле name по default если validationEnabled
+      // 2. Зависимые поля по default, если у них validationEnabled
       dispatch({
         type: 'change',
         name,
         value,
       })
+
+      const fieldsValidateOnChange = getFieldsValidateOnChange(
+        name,
+        validators,
+        stateRef.current
+      )
+
+      for (let fieldName in fieldsValidateOnChange) {
+        const result = fieldsValidateOnChange[fieldName]()
+        if (result?.then) {
+          activePromisesRef.current[name] = result
+          actions.setLoader(name, true)
+          result.then((err) => {
+            if (activePromisesRef.current[name] !== result) return
+
+            actions.setError(name, err)
+            actions.setLoader(name, false)
+          })
+        } else actions.setError(name, result)
+      }
+
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     enableValidation: useCallback((name) => {
@@ -39,8 +64,8 @@ export function useForm({ initValues, validators, submit }) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
-      const validateField = getValidateField(name, validators)
-      validateField()
+      // const validateField = getValidateField(name, validators)
+      // validateField()
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     setLoader: useCallback((name, value) => {

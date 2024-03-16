@@ -6,7 +6,7 @@ useForm
 3. Функции валидации задаются при инициализации. Переустановка изначальных валидаторов происходит после выполнения reinitialize.
 4. Если у инпута задано несколько видов валидаторов, каждый выполнится в своё время.
 5. dependantFields при изменении основных инпутов валидируются в то время, как если бы экшны выполнялись на них самих.
-6. Инпутам с типом валидации INIT валидация становится доступной при инициализации.
+6. Инпуты с типом валидации VALIDATE валидируются при выполнении actions.validate() и перед actions.submit().
 7. Валидация связанных инпутов включеается отдельно от основного инпута.
 8. В библиотеке есть зарезервированый ключ для поля 'i'.
 
@@ -17,14 +17,13 @@ useForm
     field_2: array([]),
     password: advanced({
       DEFAULT: validator,
-      ENABLING: validator,
+      VALIDATE: validator,
       SUBMITTING: validator,
     }),
     deep: {
       repeat: advanced({
-        INIT: validator,
         DEFAULT: validator,
-        ENABLING: validator,
+        VALIDATE: validator,
         SUBMITTING: validator
         // dependantFields срабатывает:
         // при валидации поля password, если уже была запущена валидация на deep.repeat
@@ -38,9 +37,8 @@ useForm
 }) => [Form, state, actions]
 
 const VALIDATION_TYPES = {
-  INIT: Symbol('INIT'),
   DEFAULT: Symbol('DEFAULT'),
-  ENABLING: Symbol('ENABLING'),
+  VALIDATE: Symbol('VALIDATE'),
   SUBMITTING: Symbol('SUBMITTING'),
 }
 
@@ -58,7 +56,7 @@ const getInitState = initValues => ({
 // validators
 type ExtendedValidator = {
   DEFAULT?: Validator,
-  ENABLING?: Validator,
+  VALIDATE?: Validator,
   SUBMITTING?: Validator,
   dependantFields?: Entity(string, Validator)
 }
