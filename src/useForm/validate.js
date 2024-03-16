@@ -1,3 +1,5 @@
+import { getFieldFromInst } from './util'
+
 const ADVANCED_VALIDATOR = Symbol('advanced validator')
 const ARRAY_FIELD = Symbol('array field')
 
@@ -14,16 +16,18 @@ export function array(field) {
   }
 }
 
-// getValidateFieldWithValues
+// getValidateField
 
-export function getFieldsValidateOnChange(name, validators, state) {
+export function getFieldsValidateOnChange(name, validators, childFields) {
   const fieldsValidateOnChange = {}
-  const validator = getValidateFieldDefault(getFieldFromInst(name, validators))
+  const validator = getValidateFieldDefault(name, validators)
+  fieldsValidateOnChange[name] = validator
 
-  if (validator?.type === ADVANCED_VALIDATOR && validator?.dependantFields) {
-    for (const fieldName of validator.dependantFields) {
+  if (childFields[name]) {
+    for (const fieldName of childFields[name]) {
       fieldsValidateOnChange[fieldName] = getValidateFieldDefault(
-        getFieldFromInst(fieldName, validators)
+        name,
+        validators
       )
     }
   }
@@ -31,11 +35,13 @@ export function getFieldsValidateOnChange(name, validators, state) {
   return fieldsValidateOnChange
 }
 
-function getValidateFieldDefault(validator) {
+function getValidateFieldDefault(name, validators) {
+  const validator = getFieldFromInst(name, validators)
+
   if (typeof validator === 'function') return validator
   if (validator?.DEFAULT) {
     if (typeof validator?.DEFAULT === 'function') return validator?.DEFAULT
-    return pipeValidators(validator?.DEFAULT)
+    return getPipedValidators(validator?.DEFAULT)
   }
 }
 
@@ -52,18 +58,22 @@ function getValidateFieldDefault(validator) {
 //     )
 // }
 
-// name.split не так проста из-за i в массивах
-export function getFieldFromInst(name, inst) {
-  return name.split('.').reduce((current, name) => current?.[name], inst)
-}
-
-function pipeValidators(validators) {
+function getPipedValidators(validators) {
   return function pipedValidators(...args) {
     for (const func of validators) {
       const result = func(...args)
       if (result) return result
     }
   }
+}
+
+export function execValidate(name, validator, values) {
+  if (validator?.[ADVANCED_VALIDATOR]) {
+    const parentsValues = (validator.PARENTS || []).map((parentName) =>
+      getFieldFromInst(parentName, values)
+    )
+    return validator(getFieldFromInst(name, values), ...parentsValues)
+  } else return validator(getFieldFromInst(name, values))
 }
 
 // export function defaultValidateField(name, validate, values) {

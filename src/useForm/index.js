@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useRef } from 'react'
 import { useReducerWithRef } from './useReducerWithRef'
-import { getFieldsValidateOnChange } from './validate'
+import { getFieldsValidateOnChange, execValidate } from './validate'
+import { iterateDeep, getFieldFromInst } from './util'
 
 const getInitState = (initValues) =>
   initValues?.then
@@ -15,6 +16,8 @@ const getInitState = (initValues) =>
         loaders: {},
       }
 
+let prevDis
+
 export function useForm({ initValues, validators, submit }) {
   const [state, dispatch, stateRef] = useReducerWithRef(
     reducer,
@@ -22,6 +25,8 @@ export function useForm({ initValues, validators, submit }) {
   )
   // для ликвидации состояния гонки
   const activePromisesRef = useRef({})
+
+  const childFields = useChildFields(validators)
 
   const actions = {
     change: useCallback((name, value) => {
@@ -37,21 +42,27 @@ export function useForm({ initValues, validators, submit }) {
       const fieldsValidateOnChange = getFieldsValidateOnChange(
         name,
         validators,
-        stateRef.current
+        childFields
       )
 
       for (let fieldName in fieldsValidateOnChange) {
-        const result = fieldsValidateOnChange[fieldName]()
+        const result = execValidate(
+          fieldName,
+          fieldsValidateOnChange[fieldName],
+          stateRef.current.values
+        )
         if (result?.then) {
-          activePromisesRef.current[name] = result
-          actions.setLoader(name, true)
+          activePromisesRef.current[fieldName] = result
+          actions.setLoader(fieldName, true)
           result.then((err) => {
-            if (activePromisesRef.current[name] !== result) return
+            if (activePromisesRef.current[fieldName] !== result) return
 
-            actions.setError(name, err)
-            actions.setLoader(name, false)
+            actions.setError(fieldName, err)
+            actions.setLoader(fieldName, false)
           })
-        } else actions.setError(name, result)
+        } else {
+          actions.setError(fieldName, result)
+        }
       }
 
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,17 +81,17 @@ export function useForm({ initValues, validators, submit }) {
     }, []),
     setLoader: useCallback((name, value) => {
       dispatch({
-        type: 'change',
+        type: 'set loader',
         name,
         value,
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    setError: useCallback((name, value) => {
+    setError: useCallback((name, error) => {
       dispatch({
-        type: 'change',
+        type: 'set error',
         name,
-        value,
+        error,
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
@@ -91,10 +102,8 @@ export function useForm({ initValues, validators, submit }) {
       <form>
         <FormContext.Provider
           value={{
-            values: stateRef.current.values,
-            actions: {
-              change: actions.change,
-            },
+            ...stateRef.current,
+            actions,
           }}
         >
           {children}
@@ -156,11 +165,34 @@ function reducer(state, action) {
   }
 }
 
+const ADVANCED_VALIDATOR = Symbol('ADVANCED_VALIDATOR')
+
+export const advanced = (validatorObj) => ({
+  ...validatorObj,
+  [ADVANCED_VALIDATOR]: true,
+})
+
+function useChildFields(validators) {
+  const childFields = {}
+
+  iterateDeep(validators, (path, val) => {
+    if (val?.[ADVANCED_VALIDATOR]) {
+      val.PARENTS?.forEach?.((parentName) => {
+        if (!childFields[parentName]) childFields[parentName] = [path.join('.')]
+        else childFields.push(path.join('.'))
+      })
+    }
+  })
+
+  return childFields
+}
+
 export function useField(name) {
-  const { values, actions } = useContext(FormContext)
+  const { values, errors, actions } = useContext(FormContext)
 
   return {
-    value: values[name],
+    value: getFieldFromInst(name, values),
+    error: errors[name],
     onChange: function onChange(value) {
       actions.change(name, value)
     },

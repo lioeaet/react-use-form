@@ -1,4 +1,4 @@
-import { useForm } from './useForm'
+import { useForm, advanced } from './useForm'
 import { Input } from './Input'
 
 function App() {
@@ -7,16 +7,16 @@ function App() {
       password: '',
       passwordRepeat: '',
     },
-    validate: {
-      password: (val) => val || 'should not be empty',
-      passwordRepeat: {
+    validators: {
+      password: (val) => !val && 'should not be empty',
+      passwordRepeat: advanced({
         DEFAULT: [
-          (val) => val || 'should not be empty',
+          (value) => !value && 'should not be empty',
           (val, password) =>
             val === password || 'should be equal with password',
         ],
         PARENTS: ['password'],
-      },
+      }),
     },
     submit: console.log,
   })
@@ -24,7 +24,7 @@ function App() {
   return (
     <Form>
       <Input name="password" />
-      <Input name="password.repeat" />
+      <Input name="passwordRepeat" />
     </Form>
   )
 }
