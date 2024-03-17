@@ -9,6 +9,7 @@ useForm
 6. Инпуты с типом валидации VALIDATE валидируются при выполнении actions.validate() и перед actions.submit().
 7. Валидация связанных инпутов включеается отдельно от основного инпута.
 8. В библиотеке есть зарезервированый ключ для поля 'i'.
+9. Асинхронная валидация записывается в одну функцию, возвращающую один промис.
 
 ({
   initValues: {} | [],
@@ -18,13 +19,13 @@ useForm
     password: advanced({
       DEFAULT: validator,
       VALIDATE: validator,
-      SUBMITTING: validator,
+      SUBMIT: validator,
     }),
     deep: {
       repeat: advanced({
         DEFAULT: validator,
         VALIDATE: validator,
-        SUBMITTING: validator
+        SUBMIT: validator
         // dependantFields срабатывает:
         // при валидации поля password, если уже была запущена валидация на deep.repeat
         // deep.repeat так же валидируем на изменение deep
@@ -33,18 +34,18 @@ useForm
       })
     }
   } | Promise | array([]),
-  submitting: func
+  submit: func
 }) => [Form, state, actions]
 
 const VALIDATION_TYPES = {
   DEFAULT: Symbol('DEFAULT'),
   VALIDATE: Symbol('VALIDATE'),
-  SUBMITTING: Symbol('SUBMITTING'),
+  SUBMIT: Symbol('SUBMIT'),
 }
 
 const getInitState = initValues => ({
   values: initValues,
-  submitting: false,
+  submit: false,
   submitted: false,
   failed: false,
   canValidate: {},
@@ -57,7 +58,7 @@ const getInitState = initValues => ({
 type ExtendedValidator = {
   DEFAULT?: Validator,
   VALIDATE?: Validator,
-  SUBMITTING?: Validator,
+  SUBMIT?: Validator,
   dependantFields?: Entity(string, Validator)
 }
 

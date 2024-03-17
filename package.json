@@ -1,5 +1,5 @@
 {
-  "name": "use-react-form",
+  "name": "react-use-form",
   "version": "0.1.0",
   "dependencies": {
     "react": "^17.0.2",
