@@ -5,6 +5,7 @@ import {
   getFieldsValidateOnChange,
   getFieldsValidateOnValidate,
   execValidate,
+  VALIDATOR_DISABLING,
 } from './validate'
 import { iterateDeep, getFieldFromInst } from './util'
 
@@ -34,6 +35,8 @@ export function useForm({ initValues, validators, submit }) {
 
   const childFields = useChildFields(validators)
 
+  const validationCountRef = useRef(0)
+
   const actions = {
     change: useCallback((name, value) => {
       dispatch({
@@ -45,33 +48,41 @@ export function useForm({ initValues, validators, submit }) {
       // валидируются
       // 1. Само поле name по default если validationEnabled
       // 2. Зависимые поля по default, если у них validationEnabled
+      validationCountRef.current++
       const fieldsValidateOnChange = getFieldsValidateOnChange(
         name,
         validators,
         childFields,
-        stateRef
+        stateRef,
+        validationCountRef
       )
       execValidateObjects(fieldsValidateOnChange)
       // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+    changeArrayIndexes: useCallback((name) => {
+      return // { prevIdx: newIdx }
     }, []),
     enableValidation: useCallback((name) => {
       dispatch({
         type: 'enable validation',
         name,
       })
+      validationCountRef.current++
 
       const fieldsValidateOnChange = getFieldsValidateOnChange(
         name,
         validators,
         childFields,
-        stateRef
+        stateRef,
+        validationCountRef
       )
 
       const fieldsValidateOnValidate = getFieldsValidateOnValidate(
         name,
         validators,
         childFields,
-        stateRef
+        stateRef,
+        validationCountRef
       )
       execValidateObjects(fieldsValidateOnChange, fieldsValidateOnValidate)
       // console.log(fieldsValidateOnValidate)
@@ -86,6 +97,9 @@ export function useForm({ initValues, validators, submit }) {
       // const validateField = getValidateField(name, validators)
       // validateField()
       // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+    submit: useCallback(() => {
+      return submit()
     }, []),
     setLoader: useCallback((name, value) => {
       dispatch({
@@ -108,11 +122,16 @@ export function useForm({ initValues, validators, submit }) {
   function execValidateObjects(...validateObjs) {
     const erredFields = {}
 
-    for (let validateObj of validateObjs) {
-      inner: for (let fieldName in validateObj) {
-        if (erredFields[fieldName]) {
-          continue
-        }
+    // если промис, то
+    // 1. Ожидаем, после продолжаем итерации по объекту
+    // 2. В это время переходим к валидации других полей
+    // 3. Если получили новый промис, return этого
+
+    outer: for (let i = 0; i < validateObjs.length; i++) {
+      const validateObj = validateObjs[i]
+
+      for (let fieldName in validateObj) {
+        if (erredFields[fieldName]) continue outer
 
         const result = execValidate(
           fieldName,
@@ -122,18 +141,19 @@ export function useForm({ initValues, validators, submit }) {
         if (result?.then) {
           activePromisesRef.current[fieldName] = result
           actions.setLoader(fieldName, true)
-          result.then((err) => {
-            if (activePromisesRef.current[fieldName] !== result) return
+          result
+            .then((err) => {
+              if (activePromisesRef.current[fieldName] !== result) return
 
-            actions.setError(fieldName, err)
-            actions.setLoader(fieldName, false)
-          })
+              actions.setError(fieldName, err)
+              actions.setLoader(fieldName, false)
+            })
+            .catch((err) => {
+              if (err !== VALIDATOR_DISABLING) throw err
+            })
         } else {
           actions.setError(fieldName, result)
-        }
-        if (result) {
-          erredFields[fieldName] = true
-          continue inner
+          if (result) erredFields[fieldName] = true
         }
       }
     }

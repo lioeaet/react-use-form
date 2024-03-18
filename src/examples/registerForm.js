@@ -8,6 +8,7 @@ function App() {
       passwordRepeat: '',
     },
     validators: {
+      name: (val) => ,
       password: (val) => !val && 'should not be empty',
       passwordRepeat: advanced({
         DEFAULT: [
