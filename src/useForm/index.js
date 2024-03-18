@@ -99,7 +99,12 @@ export function useForm({ initValues, validators, submit }) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     submit: useCallback(() => {
-      return submit()
+      dispatch({
+        type: 'submit',
+      })
+      return () => {
+        submit(stateRef.current.values).then()
+      }
     }, []),
     setLoader: useCallback((name, value) => {
       dispatch({
@@ -119,8 +124,8 @@ export function useForm({ initValues, validators, submit }) {
     }, []),
   }
 
-  function execValidateObjects(...validateObjs) {
-    const erredFields = {}
+  async function execValidateObjects(...validateObjs) {
+    const fieldsErrors = {}
 
     // если промис, то
     // 1. Ожидаем, после продолжаем итерации по объекту
@@ -131,7 +136,7 @@ export function useForm({ initValues, validators, submit }) {
       const validateObj = validateObjs[i]
 
       for (let fieldName in validateObj) {
-        if (erredFields[fieldName]) continue outer
+        if (fieldsErrors[fieldName]) continue outer
 
         const result = execValidate(
           fieldName,
@@ -141,10 +146,11 @@ export function useForm({ initValues, validators, submit }) {
         if (result?.then) {
           activePromisesRef.current[fieldName] = result
           actions.setLoader(fieldName, true)
-          result
+          await result
             .then((err) => {
               if (activePromisesRef.current[fieldName] !== result) return
 
+              fieldsErrors[fieldName] = err
               actions.setError(fieldName, err)
               actions.setLoader(fieldName, false)
             })
@@ -153,7 +159,7 @@ export function useForm({ initValues, validators, submit }) {
             })
         } else {
           actions.setError(fieldName, result)
-          if (result) erredFields[fieldName] = true
+          fieldsErrors[fieldName] = result
         }
       }
     }

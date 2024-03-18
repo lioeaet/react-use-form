@@ -8,17 +8,34 @@ function App() {
       passwordRepeat: '',
     },
     validators: {
-      password: (val) => !val && 'should not be empty',
+      password: (val) =>
+        new Promise((r) => r()).then(() => !val && 'should not be empty'),
       passwordRepeat: advanced({
         DEFAULT: [
-          (value) => !value && 'should not be empty',
+          (value) => {
+            return !value && 'should be filled'
+            // new Promise((r) => r()).then(
+            //   () =>
+            // )
+          },
           (val, password) => {
             // console.log(
             //   val,
             //   password,
             //   val !== password && 'should be equal with password'
             // )
-            return val !== password && 'should be equal with password'
+            return new Promise((r) => r()).then(
+              () => val !== password && 'should be equal with password'
+            )
+          },
+        ],
+        VALIDATE: [
+          (value, password) => {
+            return new Promise((r) => r()).then(
+              () =>
+                Boolean(value === password) &&
+                'should not be equal with password'
+            )
           },
         ],
         PARENTS: ['password'],
