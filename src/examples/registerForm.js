@@ -8,19 +8,21 @@ function App() {
       passwordRepeat: '',
     },
     validators: {
-      name: (val) => ,
-      password: (val) => !val && 'should not be empty',
+      password: (val) =>
+        new Promise((r) => r()).then(!val && 'should not be empty'),
       passwordRepeat: advanced({
         DEFAULT: [
-          (value) => !value && 'should not be empty',
-          (val, password) => {
+          new Promise((r) => r()).then(
+            (value) => !value && 'should not be empty'
+          ),
+          new Promise((r) => r()).then((val, password) => {
             // console.log(
             //   val,
             //   password,
             //   val !== password && 'should be equal with password'
             // )
             return val !== password && 'should be equal with password'
-          },
+          }),
         ],
         PARENTS: ['password'],
       }),

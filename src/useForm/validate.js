@@ -121,11 +121,13 @@ function getPipedValidators(
         return result.then((asyncResult) => {
           if (asyncResult) return asyncResult
           else if (validationCountRef.current !== validationCount) {
-            throw VALIDATORS_DISABLING
+            throw VALIDATOR_DISABLING
           } else {
             const nextPipedValidators = getPipedValidators(
               validators.slice(i + 1, validators.length),
-              parents
+              parents,
+              validationCount,
+              validationCountRef
             )
             return nextPipedValidators(...args)
           }
@@ -158,7 +160,7 @@ function getPipedValidators(
 //   return fieldsValidate
 // }
 
-const VALIDATORS_DISABLING = Symbol('validators disabling')
+export const VALIDATOR_DISABLING = Symbol('validator disabling')
 
 export function advanced(validator) {
   validator = { ...validator }
