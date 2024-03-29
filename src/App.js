@@ -20,27 +20,27 @@ function App() {
         delay((val) => val === '12' && 'should not be 12', 1000),
         delay((val) => val === '123' && 'should not be 123'),
       ],
-      // passwordRepeat: advanced({
-      //   DEFAULT: [
-      //     delay((val, password) => {
-      //       return val !== password && 'should be equal with password'
-      //     }),
-      //     (value, password) => {
-      //       return new Promise((r) => r()).then(
-      //         () => value === password && 'should not be equal with password'
-      //       )
-      //     },
-      //   ],
-      //   VALIDATE: [
-      //     (value) => {
-      //       return !value && 'should not be empty'
-      //       // new Promise((r) => r()).then(
-      //       //   () =>
-      //       // )
-      //     },
-      //   ],
-      //   PARENTS: ['password'],
-      // }),
+      passwordRepeat: advanced({
+        DEFAULT: [
+          delay((val, password) => {
+            return val !== password && 'should be equal with password'
+          }),
+          (value) => {
+            return !value && 'should not be empty'
+            // new Promise((r) => r()).then(
+            //   () =>
+            // )
+          },
+        ],
+        VALIDATE: [
+          (value, password) => {
+            return new Promise((r) => r()).then(
+              () => value === password && 'should not be equal with password'
+            )
+          },
+        ],
+        PARENTS: ['password'],
+      }),
       // array: array({
       //   name: (val) => !val && 'should not be empty',
       //   surname: {

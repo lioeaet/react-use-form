@@ -4,7 +4,6 @@ import {
   ADVANCED_VALIDATOR,
   getFieldsValidateOnChange,
   getFieldsValidateOnValidate,
-  execValidate,
 } from './validate'
 import { iterateDeep, getFieldFromInst } from './util'
 
@@ -74,20 +73,23 @@ export function useForm({ initValues, validators, submit }) {
         name,
       })
 
-      //       const fieldsValidateOnChange = getFieldsValidateOnChange(
-      //         name,
-      //         validators,
-      //         childFields,
-      //         stateRef
-      //       )
-      //
-      //       const fieldsValidateOnValidate = getFieldsValidateOnValidate(
-      //         name,
-      //         validators,
-      //         childFields,
-      //         stateRef
-      //       )
-      //       execValidateObjects(fieldsValidateOnChange, fieldsValidateOnValidate)
+      const fieldsValidateOnChange = getFieldsValidateOnChange(
+        name,
+        validators,
+        childFields,
+        stateRef
+      )
+
+      const fieldsValidateOnValidate = getFieldsValidateOnValidate(
+        name,
+        validators,
+        childFields,
+        stateRef
+      )
+
+      execValidateObject(
+        joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate)
+      )
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
@@ -172,80 +174,17 @@ export function useForm({ initValues, validators, submit }) {
           })
         } else {
           if (result) {
-            if (promisesCount) actions.setLoading(fieldName, false)
+            if (promisesCount) actions.setLoader(fieldName, false)
             fieldsErrors[fieldName] = result
-            actions.setError(result)
+            actions.setError(fieldName, result)
             continue outer
           } else if (!promisesCount && i === validators.length - 1) {
             actions.setError(fieldName, null)
           }
         }
-
-        if (fieldsErrors[fieldName]) continue outer
       }
     }
   }
-
-  //   async function execValidateObjects(...validateObjs) {
-  //     lastValidateObjRef.current = validateObjs
-  //
-  //     const fieldsErrors = {}
-  //     const fieldValidationCounts = {}
-  //
-  //     // joinValidateObjs
-  //
-  //     outer: for (let i = 0; i < validateObjs.length; i++) {
-  //       const validateObj = validateObjs[i]
-  //
-  //       for (let fieldName in validateObj) {
-  //         if (fieldsErrors[fieldName]) continue outer
-  //
-  //         const result = execValidate(
-  //           fieldName,
-  //           validateObj[fieldName],
-  //           stateRef.current.values
-  //         )
-  //         if (result?.then) {
-  //           actions.setLoader(fieldName, true)
-  //           result
-  //             .then((err) => {
-  //               // getActualName(iterationCount, fieldName)
-  //               // fieldName.split('.')
-  //               // iterateValidationToArray
-  //               // if hasArraysFieldsInPath(fieldName)
-  //
-  //               // [idx, ...afterIdx] = fieldName.slice(arrayName.length).splice('.')
-  //               // const newIdx = getNewIdx(iterationCountRef, iterationCount.current, orderChanges, arrayPath)
-  //               // newName = [arrayName, orderChangesRef[idx], afterIdx].join('.')
-  //               if (fieldsErrors[fieldName]) return
-  //               if (lastValidateObjRef.current[fieldName] !== validateObjs)
-  //                 return
-  //
-  //               // при первой ошибке нужно её показать и сделать setLoading(false)
-  //               // (остальные валидации игнорируем)
-  //               // при последней асинхронной валидации нужно
-  //               // если ошибки нет в ней и в fieldsErrors[fieldName]
-  //               // поставить setLoading(false) и setError(null)
-  //
-  //               fieldsErrors[fieldName] = err
-  //               actions.setError(fieldName, err)
-  //               actions.setLoader(fieldName, false)
-  //             })
-  //             .catch((err) => {
-  //               if (lastValidateObjRef.current[fieldName] !== validateObjs)
-  //                 return
-  //               actions.setError(fieldName, err)
-  //               actions.setLoader(fieldName, false)
-  //             })
-  //         } else {
-  //           if (result) {
-  //             actions.setError(fieldName, result)
-  //             fieldsErrors[fieldName] = result
-  //           } // else if (isLastValidation) setError(null)
-  //         }
-  //       }
-  //     }
-  //   }
 
   const Form = useCallback(function Form({ children }) {
     return (
@@ -313,6 +252,21 @@ function reducer(state, action) {
     default:
       throw new Error('unknown action')
   }
+}
+
+function joinValidators(...validators) {
+  const result = {}
+  for (let validator of validators) {
+    for (let fieldName in validator) {
+      if (!result[fieldName]) result[fieldName] = validator[fieldName]
+      else
+        result[fieldName].validators = [
+          ...result[fieldName].validators,
+          ...validator[fieldName].validators,
+        ]
+    }
+  }
+  return result
 }
 
 function useChildFields(validators) {
