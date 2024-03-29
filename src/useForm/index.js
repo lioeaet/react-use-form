@@ -38,7 +38,7 @@ export function useForm({ initValues, validators, submit }) {
     getInitState(initValues)
   )
   // для ликвидации состояния гонки
-  const activeValidateObjsRef = useRef({})
+  const lastValidateObjRef = useRef({})
 
   const childFields = useChildFields(validators)
 
@@ -102,16 +102,15 @@ export function useForm({ initValues, validators, submit }) {
       return submit(stateRef.current.values).then((res) => {})
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    setLoader: useCallback((name, value) => {
+    setLoader: useCallback((name, loader) => {
       dispatch({
         type: 'set loader',
         name,
-        value,
+        loader,
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     setError: useCallback((name, error) => {
-      console.log(name, error)
       dispatch({
         type: 'set error',
         name,
@@ -129,7 +128,6 @@ export function useForm({ initValues, validators, submit }) {
 
   function execValidateObject(validateObj) {
     const fieldsErrors = {}
-    console.log(validateObj)
 
     // при первой ошибке нужно её показать и сделать setLoading(false)
     // (остальные валидации игнорируем)
@@ -141,6 +139,7 @@ export function useForm({ initValues, validators, submit }) {
     // а setLoading трогать не нужно
     outer: for (let fieldName in validateObj) {
       const { validators, argsFields } = validateObj[fieldName]
+      lastValidateObjRef.current[fieldName] = validateObj[fieldName]
       const values = argsFields.map((field) =>
         getFieldFromInst(field, stateRef.current.values)
       )
@@ -151,13 +150,17 @@ export function useForm({ initValues, validators, submit }) {
         const result = validator(...values)
 
         if (result?.then) {
+          if (!promisesCount) actions.setLoader(fieldName, true)
           promisesCount++
-          if (promisesCount === 1) actions.setLoader(fieldName, true)
 
           // eslint-disable-next-line no-loop-func
           result.then((error) => {
-            --promisesCount
             if (fieldsErrors[fieldName]) return
+            if (
+              lastValidateObjRef.current[fieldName] !== validateObj[fieldName]
+            )
+              return
+            --promisesCount
             if (error) {
               fieldsErrors[fieldName] = error
               actions.setError(fieldName, error)
@@ -184,7 +187,7 @@ export function useForm({ initValues, validators, submit }) {
   }
 
   //   async function execValidateObjects(...validateObjs) {
-  //     activeValidateObjsRef.current = validateObjs
+  //     lastValidateObjRef.current = validateObjs
   //
   //     const fieldsErrors = {}
   //     const fieldValidationCounts = {}
@@ -215,7 +218,7 @@ export function useForm({ initValues, validators, submit }) {
   //               // const newIdx = getNewIdx(iterationCountRef, iterationCount.current, orderChanges, arrayPath)
   //               // newName = [arrayName, orderChangesRef[idx], afterIdx].join('.')
   //               if (fieldsErrors[fieldName]) return
-  //               if (activeValidateObjsRef.current[fieldName] !== validateObjs)
+  //               if (lastValidateObjRef.current[fieldName] !== validateObjs)
   //                 return
   //
   //               // при первой ошибке нужно её показать и сделать setLoading(false)
@@ -229,7 +232,7 @@ export function useForm({ initValues, validators, submit }) {
   //               actions.setLoader(fieldName, false)
   //             })
   //             .catch((err) => {
-  //               if (activeValidateObjsRef.current[fieldName] !== validateObjs)
+  //               if (lastValidateObjRef.current[fieldName] !== validateObjs)
   //                 return
   //               actions.setError(fieldName, err)
   //               actions.setLoader(fieldName, false)
@@ -328,11 +331,12 @@ function useChildFields(validators) {
 }
 
 export function useField(name) {
-  const { values, errors, actions } = useContext(FormContext)
+  const { values, errors, loaders, actions } = useContext(FormContext)
 
   return {
     value: getFieldFromInst(name, values),
     error: errors[name],
+    loading: loaders[name],
     onChange: function onChange(value) {
       actions.change(name, value)
     },

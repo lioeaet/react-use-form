@@ -16,7 +16,7 @@ export function execValidate(name, validator, values) {
 
 export function getFieldsValidateOnChange(
   name,
-  validators,
+  validatorsMap,
   childFields,
   stateRef
 ) {
@@ -24,15 +24,15 @@ export function getFieldsValidateOnChange(
   const fieldsValidate = {}
 
   if (validationEnabled[name]) {
-    const validate = getFieldValidatorsDefault(name, validators)
-    if (validate) fieldsValidate[name] = validate
+    const validators = getFieldValidatorsDefault(name, validatorsMap)
+    if (validators) fieldsValidate[name] = validators
   }
 
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
       if (validationEnabled[fieldName]) {
-        const validate = getFieldValidatorsDefault(fieldName, validators)
-        if (validate) fieldsValidate[fieldName] = validate
+        const validators = getFieldValidatorsDefault(fieldName, validatorsMap)
+        if (validators) fieldsValidate[fieldName] = validators
       }
     }
   }

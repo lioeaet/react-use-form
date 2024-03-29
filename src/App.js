@@ -17,7 +17,7 @@ function App() {
       password: [
         delay((val) => !val && 'should not be empty'),
         delay((val) => val === '1' && 'should not be 1'),
-        delay((val) => val === '12' && 'should not be 12'),
+        delay((val) => val === '12' && 'should not be 12', 1000),
         delay((val) => val === '123' && 'should not be 123'),
       ],
       // passwordRepeat: advanced({
