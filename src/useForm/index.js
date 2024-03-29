@@ -5,7 +5,6 @@ import {
   getFieldsValidateOnChange,
   getFieldsValidateOnValidate,
   execValidate,
-  VALIDATOR_DISABLING,
 } from './validate'
 import { iterateDeep, getFieldFromInst } from './util'
 
@@ -25,17 +24,26 @@ const getInitState = (initValues) =>
 // совмещение асинхронной валидации с изменениями в массивах
 // (изменение имени поля для setError)
 
+// при changeOrder может измениться порядок
+// и валидация должна примениться к новым полям
+
+// orderUpdates = { arrayPath: iterationCount }
+
+// iterationCount
+// from iterationCount
+
 export function useForm({ initValues, validators, submit }) {
   const [state, dispatch, stateRef] = useReducerWithRef(
     reducer,
     getInitState(initValues)
   )
   // для ликвидации состояния гонки
-  const activePromisesRef = useRef({})
+  const activeValidateObjsRef = useRef({})
 
   const childFields = useChildFields(validators)
 
-  const validationCountRef = useRef(0)
+  const iterationsCountRef = useRef(0)
+  const orderChangesByIterationRef = useRef({})
 
   const actions = {
     change: useCallback((name, value) => {
@@ -48,18 +56,16 @@ export function useForm({ initValues, validators, submit }) {
       // валидируются
       // 1. Само поле name по default если validationEnabled
       // 2. Зависимые поля по default, если у них validationEnabled
-      validationCountRef.current++
       const fieldsValidateOnChange = getFieldsValidateOnChange(
         name,
         validators,
         childFields,
-        stateRef,
-        validationCountRef
+        stateRef
       )
-      execValidateObjects(fieldsValidateOnChange)
+      execValidateObject(fieldsValidateOnChange)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    changeArrayIndexes: useCallback((name) => {
+    changeArrayOrder: useCallback((name) => {
       return // { prevIdx: newIdx }
     }, []),
     enableValidation: useCallback((name) => {
@@ -67,30 +73,21 @@ export function useForm({ initValues, validators, submit }) {
         type: 'enable validation',
         name,
       })
-      validationCountRef.current++
 
-      const fieldsValidateOnChange = getFieldsValidateOnChange(
-        name,
-        validators,
-        childFields,
-        stateRef,
-        validationCountRef
-      )
-
-      const fieldsValidateOnValidate = getFieldsValidateOnValidate(
-        name,
-        validators,
-        childFields,
-        stateRef,
-        validationCountRef
-      )
-      execValidateObjects(fieldsValidateOnChange, fieldsValidateOnValidate)
-      // console.log(fieldsValidateOnValidate)
-      // валидируются
-      // 1. Само поле name по default
-      // 2. Зависимые поля по default
-      // 3. Само поле с валидацией validate
-      // 4. Зависимые поля с валидацией validate
+      //       const fieldsValidateOnChange = getFieldsValidateOnChange(
+      //         name,
+      //         validators,
+      //         childFields,
+      //         stateRef
+      //       )
+      //
+      //       const fieldsValidateOnValidate = getFieldsValidateOnValidate(
+      //         name,
+      //         validators,
+      //         childFields,
+      //         stateRef
+      //       )
+      //       execValidateObjects(fieldsValidateOnChange, fieldsValidateOnValidate)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
@@ -102,9 +99,8 @@ export function useForm({ initValues, validators, submit }) {
       dispatch({
         type: 'submit',
       })
-      return () => {
-        submit(stateRef.current.values).then()
-      }
+      return submit(stateRef.current.values).then((res) => {})
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     setLoader: useCallback((name, value) => {
       dispatch({
@@ -115,6 +111,7 @@ export function useForm({ initValues, validators, submit }) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     setError: useCallback((name, error) => {
+      console.log(name, error)
       dispatch({
         type: 'set error',
         name,
@@ -122,48 +119,130 @@ export function useForm({ initValues, validators, submit }) {
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
+    reset: useCallback(() => {
+      dispatch({
+        type: 'reset',
+      })
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
   }
 
-  async function execValidateObjects(...validateObjs) {
+  function execValidateObject(validateObj) {
     const fieldsErrors = {}
+    console.log(validateObj)
 
-    // если промис, то
-    // 1. Ожидаем, после продолжаем итерации по объекту
-    // 2. В это время переходим к валидации других полей
-    // 3. Если получили новый промис, return этого
+    // при первой ошибке нужно её показать и сделать setLoading(false)
+    // (остальные валидации игнорируем)
+    // при последней асинхронной валидации нужно
+    // если ошибки нет в ней и в fieldsErrors[fieldName]
+    // поставить setLoading(false) и setError(null)
+    // если нет асинхронных валидаций,
+    // то setError(null) нужно делать на последней синхронной валидации
+    // а setLoading трогать не нужно
+    outer: for (let fieldName in validateObj) {
+      const { validators, argsFields } = validateObj[fieldName]
+      const values = argsFields.map((field) =>
+        getFieldFromInst(field, stateRef.current.values)
+      )
+      let promisesCount = 0
 
-    outer: for (let i = 0; i < validateObjs.length; i++) {
-      const validateObj = validateObjs[i]
+      for (let i = 0; i < validators.length; i++) {
+        const validator = validators[i]
+        const result = validator(...values)
 
-      for (let fieldName in validateObj) {
-        if (fieldsErrors[fieldName]) continue outer
-
-        const result = execValidate(
-          fieldName,
-          validateObj[fieldName],
-          stateRef.current.values
-        )
         if (result?.then) {
-          activePromisesRef.current[fieldName] = result
-          actions.setLoader(fieldName, true)
-          await result
-            .then((err) => {
-              if (activePromisesRef.current[fieldName] !== result) return
+          promisesCount++
+          if (promisesCount === 1) actions.setLoader(fieldName, true)
 
-              fieldsErrors[fieldName] = err
-              actions.setError(fieldName, err)
+          // eslint-disable-next-line no-loop-func
+          result.then((error) => {
+            --promisesCount
+            if (fieldsErrors[fieldName]) return
+            if (error) {
+              fieldsErrors[fieldName] = error
+              actions.setError(fieldName, error)
               actions.setLoader(fieldName, false)
-            })
-            .catch((err) => {
-              if (err !== VALIDATOR_DISABLING) throw err
-            })
+            } else if (!promisesCount) {
+              actions.setLoader(fieldName, false)
+              actions.setError(fieldName, null)
+            }
+          })
         } else {
-          actions.setError(fieldName, result)
-          fieldsErrors[fieldName] = result
+          if (result) {
+            if (promisesCount) actions.setLoading(fieldName, false)
+            fieldsErrors[fieldName] = result
+            actions.setError(result)
+            continue outer
+          } else if (!promisesCount && i === validators.length - 1) {
+            actions.setError(fieldName, null)
+          }
         }
+
+        if (fieldsErrors[fieldName]) continue outer
       }
     }
   }
+
+  //   async function execValidateObjects(...validateObjs) {
+  //     activeValidateObjsRef.current = validateObjs
+  //
+  //     const fieldsErrors = {}
+  //     const fieldValidationCounts = {}
+  //
+  //     // joinValidateObjs
+  //
+  //     outer: for (let i = 0; i < validateObjs.length; i++) {
+  //       const validateObj = validateObjs[i]
+  //
+  //       for (let fieldName in validateObj) {
+  //         if (fieldsErrors[fieldName]) continue outer
+  //
+  //         const result = execValidate(
+  //           fieldName,
+  //           validateObj[fieldName],
+  //           stateRef.current.values
+  //         )
+  //         if (result?.then) {
+  //           actions.setLoader(fieldName, true)
+  //           result
+  //             .then((err) => {
+  //               // getActualName(iterationCount, fieldName)
+  //               // fieldName.split('.')
+  //               // iterateValidationToArray
+  //               // if hasArraysFieldsInPath(fieldName)
+  //
+  //               // [idx, ...afterIdx] = fieldName.slice(arrayName.length).splice('.')
+  //               // const newIdx = getNewIdx(iterationCountRef, iterationCount.current, orderChanges, arrayPath)
+  //               // newName = [arrayName, orderChangesRef[idx], afterIdx].join('.')
+  //               if (fieldsErrors[fieldName]) return
+  //               if (activeValidateObjsRef.current[fieldName] !== validateObjs)
+  //                 return
+  //
+  //               // при первой ошибке нужно её показать и сделать setLoading(false)
+  //               // (остальные валидации игнорируем)
+  //               // при последней асинхронной валидации нужно
+  //               // если ошибки нет в ней и в fieldsErrors[fieldName]
+  //               // поставить setLoading(false) и setError(null)
+  //
+  //               fieldsErrors[fieldName] = err
+  //               actions.setError(fieldName, err)
+  //               actions.setLoader(fieldName, false)
+  //             })
+  //             .catch((err) => {
+  //               if (activeValidateObjsRef.current[fieldName] !== validateObjs)
+  //                 return
+  //               actions.setError(fieldName, err)
+  //               actions.setLoader(fieldName, false)
+  //             })
+  //         } else {
+  //           if (result) {
+  //             actions.setError(fieldName, result)
+  //             fieldsErrors[fieldName] = result
+  //           } // else if (isLastValidation) setError(null)
+  //         }
+  //       }
+  //     }
+  //   }
 
   const Form = useCallback(function Form({ children }) {
     return (

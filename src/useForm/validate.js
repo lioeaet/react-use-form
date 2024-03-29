@@ -18,29 +18,20 @@ export function getFieldsValidateOnChange(
   name,
   validators,
   childFields,
-  stateRef,
-  validationCountRef
+  stateRef
 ) {
   const { validationEnabled } = stateRef.current
   const fieldsValidate = {}
 
   if (validationEnabled[name]) {
-    const validate = getValidateFieldDefault(
-      name,
-      validators,
-      validationCountRef
-    )
+    const validate = getFieldValidatorsDefault(name, validators)
     if (validate) fieldsValidate[name] = validate
   }
 
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
       if (validationEnabled[fieldName]) {
-        const validate = getValidateFieldDefault(
-          fieldName,
-          validators,
-          validationCountRef
-        )
+        const validate = getFieldValidatorsDefault(fieldName, validators)
         if (validate) fieldsValidate[fieldName] = validate
       }
     }
@@ -53,18 +44,12 @@ export function getFieldsValidateOnValidate(
   name,
   validators,
   childFields,
-  stateRef,
-  validationCountRef
+  stateRef
 ) {
   const { validationEnabled } = stateRef.current
   const fieldsValidate = {}
 
-  fieldsValidate[name] = getValidateFieldAdvanced(
-    name,
-    validators,
-    'VALIDATE',
-    validationCountRef
-  )
+  fieldsValidate[name] = getValidateFieldAdvanced(name, validators, 'VALIDATE')
 
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
@@ -72,8 +57,7 @@ export function getFieldsValidateOnValidate(
         fieldsValidate[fieldName] = getValidateFieldAdvanced(
           fieldName,
           validators,
-          'VALIDATE',
-          validationCountRef
+          'VALIDATE'
         )
       }
     }
@@ -82,52 +66,43 @@ export function getFieldsValidateOnValidate(
   return fieldsValidate
 }
 
-function getValidateFieldDefault(name, validators, validationCountRef) {
+function getFieldValidatorsDefault(name, validators) {
   const validator = getFieldFromInst(name, validators)
 
-  if (validator?.DEFAULT) {
-    if (typeof validator.DEFAULT === 'function') return validator.DEFAULT
-    return getPipedValidators(
-      validator.DEFAULT,
-      validator.PARENTS,
-      validationCountRef.current,
-      validationCountRef
-    )
-  } else if (typeof validator === 'function') return validator
+  if (validator?.[ADVANCED_VALIDATOR]) {
+    if (typeof validator.DEFAULT === 'function')
+      return {
+        validators: [validator.DEFAULT],
+        argsFields: [name, ...validator.PARENTS],
+      }
+    return {
+      validators: validator.DEFAULT,
+      argsFields: [name, ...validator.PARENTS],
+    }
+  } else if (Array.isArray(validator)) {
+    return { validators: validator, argsFields: [name] }
+  } else if (typeof validator === 'function')
+    return { validator: [validators.DEFAULT], argsFields: [name] }
 }
 
-function getValidateFieldAdvanced(name, validators, type, validationCountRef) {
+function getValidateFieldAdvanced(name, validators, type) {
   const validator = getFieldFromInst(name, validators)
   if (!validator?.[type]) return () => {}
 
-  return getPipedValidators(
-    validator.VALIDATE,
-    validator.PARENTS,
-    validationCountRef.current,
-    validationCountRef
-  )
+  return getPipedValidators(validator.VALIDATE, validator.PARENTS)
 }
 
-function getPipedValidators(
-  validators,
-  parents,
-  validationCount,
-  validationCountRef
-) {
+function getPipedValidators(validators, parents) {
   async function pipedValidators(...args) {
     for (let i = 0; i < validators.length; i++) {
       const result = validators[i](...args)
       if (result?.then) {
         return result.then((asyncResult) => {
           if (asyncResult) return asyncResult
-          else if (validationCountRef.current !== validationCount) {
-            throw VALIDATOR_DISABLING
-          } else {
+          else {
             const nextPipedValidators = getPipedValidators(
               validators.slice(i + 1, validators.length),
-              parents,
-              validationCount,
-              validationCountRef
+              parents
             )
             return nextPipedValidators(...args)
           }
@@ -160,11 +135,9 @@ function getPipedValidators(
 //   return fieldsValidate
 // }
 
-export const VALIDATOR_DISABLING = Symbol('validator disabling')
-
 export function advanced(validator) {
   validator = { ...validator }
-  validator.type = ADVANCED_VALIDATOR
+  validator[ADVANCED_VALIDATOR] = true
   return validator
 }
 

@@ -9,34 +9,33 @@ function App() {
     },
     validators: {
       password: (val) =>
-        new Promise((r) => r()).then(!val && 'should not be empty'),
+        new Promise((r) => r()).then(() => !val && 'should not be empty'),
       passwordRepeat: advanced({
         DEFAULT: [
-          (value) => !value && 'should not be empty',
-          // new Promise((r) => r()).then(
-          // (val, password) => {
-          // console.log(
-          //   val,
-          //   password,
-          //   val !== password && 'should be equal with password'
-          // )
-          // return val !== password && 'should be equal with password'
-          // } /* ) */,
+          (val, password) =>
+            new Promise((r) => r()).then(
+              () => val !== password && 'should be equal with password'
+            ),
+          (value) => {
+            return !value && 'should be filled'
+            // new Promise((r) => r()).then(
+            //   () =>
+            // )
+          },
         ],
         VALIDATE: [
-          (val, password) => {
-            console.log(
-              val,
-              password,
-              val !== password && 'should be equal with password'
-            )
-            return new Promise((r) => r()).then(
-              val !== password && '1 should be equal with password'
-            )
-          },
+          (value, password) =>
+            new Promise((r) => r()).then(
+              () =>
+                Boolean(value === password) &&
+                'should not be equal with password'
+            ),
         ],
         PARENTS: ['password'],
       }),
+      // arrayField: array({
+      //   inArr: (val) => 'oki'
+      // })
     },
     submit: console.log,
   })
