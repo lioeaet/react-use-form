@@ -1,12 +1,12 @@
 useForm
 
 виды валидации
-1. Валидация поля становится доступной после одного из 3 экшнов: action.submit(), actions.validate(name), actions.enableValidation(name).
+1. Валидация поля становится доступной после одного из 3 экшнов: action.submit(), actions.validate(name), actions.blur(name).
 2. По умолчанию валидация происходит на action change поля с доступной валидацией.
 3. Функции валидации задаются при инициализации. Переустановка изначальных валидаторов происходит после выполнения reinitialize.
 4. Если у инпута задано несколько видов валидаторов, каждый выполнится в своё время.
 5. dependantFields при изменении основных инпутов валидируются в то время, как если бы экшны выполнялись на них самих.
-6. Инпуты с типом валидации VALIDATE валидируются при выполнении actions.validate() и перед actions.submit().
+6. Инпуты с типом валидации BLUR валидируются при выполнении actions.blur() и перед actions.submit().
 7. Валидация связанных инпутов включеается отдельно от основного инпута.
 8. В библиотеке есть зарезервированый ключ поля 'i'.
 9. Инпуты внутри массивов должны сохранять порядок на время асинхронной валидации, либо валидироваться отдельно.
@@ -21,14 +21,14 @@ useSessionForm
     field_1: func,
     field_2: array([]),
     password: advanced({
-      DEFAULT: validator,
-      VALIDATE: validator,
+      CHANGE: validator,
+      BLUR: validator,
       SUBMIT: validator,
     }),
     deep: {
       repeat: advanced({
-        DEFAULT: validator,
-        VALIDATE: validator,
+        CHANGE: validator,
+        BLUR: validator,
         SUBMIT: validator
         // dependantFields срабатывает:
         // при валидации поля password, если уже была запущена валидация на deep.repeat
@@ -42,8 +42,8 @@ useSessionForm
 }) => [Form, state, actions]
 
 const VALIDATION_TYPES = {
-  DEFAULT: Symbol('DEFAULT'),
-  VALIDATE: Symbol('VALIDATE'),
+  CHANGE: Symbol('CHANGE'),
+  BLUR: Symbol('BLUR'),
   SUBMIT: Symbol('SUBMIT'),
 }
 
@@ -60,8 +60,8 @@ const getInitState = initValues => ({
 
 // validators
 type ExtendedValidator = {
-  DEFAULT?: Validator,
-  VALIDATE?: Validator,
+  CHANGE?: Validator,
+  BLUR?: Validator,
   SUBMIT?: Validator,
   dependantFields?: Entity(string, Validator)
 }

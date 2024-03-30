@@ -65,7 +65,7 @@ export function useForm({ initValues, validators, submit }) {
       return // { prevIdx: newIdx }
     }, []),
     spliceArray: useCallback(() => {}, []),
-    enableValidation: useCallback((name) => {
+    blur: useCallback((name) => {
       dispatch({
         type: 'enable validation',
         name,
@@ -95,15 +95,14 @@ export function useForm({ initValues, validators, submit }) {
       // validateField()
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    submit: useCallback(() => {
+    submit: () => {
       dispatch({
         type: 'submit start',
       })
       return submit(stateRef.current.values)
         .then((res) => {})
         .catch((e) => {})
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
+    },
     setLoader: useCallback((name, loader) => {
       dispatch({
         type: 'set loader',
@@ -123,6 +122,7 @@ export function useForm({ initValues, validators, submit }) {
     reset: useCallback(() => {
       dispatch({
         type: 'reset',
+        initValues,
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
@@ -299,7 +299,7 @@ export function useField(name) {
       actions.change(name, value)
     },
     onBlur: function onEnableValidation() {
-      actions.enableValidation(name)
+      actions.blur(name)
     },
   }
 }

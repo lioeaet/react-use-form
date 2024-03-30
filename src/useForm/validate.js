@@ -13,14 +13,14 @@ export function getFieldsValidateOnChange(
   const fieldsValidate = {}
 
   if (validationEnabled[name]) {
-    const validators = getFieldValidatorsDefault(name, validatorsMap)
+    const validators = getFieldValidatorsOnChange(name, validatorsMap)
     if (validators) fieldsValidate[name] = validators
   }
 
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
       if (validationEnabled[fieldName]) {
-        const validators = getFieldValidatorsDefault(fieldName, validatorsMap)
+        const validators = getFieldValidatorsOnChange(fieldName, validatorsMap)
         if (validators) fieldsValidate[fieldName] = validators
       }
     }
@@ -55,7 +55,7 @@ export function getFieldsValidateOnValidate(
   return fieldsValidate
 }
 
-function getFieldValidatorsDefault(name, validatorsMap) {
+function getFieldValidatorsOnChange(name, validatorsMap) {
   const validator = getFieldFromInst(name, validatorsMap)
 
   if (validator?.[ADVANCED_VALIDATOR]) {
