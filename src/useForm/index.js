@@ -157,7 +157,6 @@ export function useForm({ initValues, validators, submit }) {
 
           // eslint-disable-next-line no-loop-func
           result.then((error) => {
-            console.log(error)
             if (fieldsErrors[fieldName]) return
             if (
               lastValidateObjRef.current[fieldName] !== validateObj[fieldName]
