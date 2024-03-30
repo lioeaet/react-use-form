@@ -31,6 +31,7 @@ export function getFieldFromInst(name, inst) {
 }
 
 export function setFieldToInst(name, value, inst) {
+  console.log(name, value, inst)
   const path = name.split('.')
   let current = inst
   for (let i = 0; i < path.length; i++) {

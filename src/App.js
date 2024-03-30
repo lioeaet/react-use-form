@@ -1,5 +1,6 @@
-import { useForm, advanced /* , array */ } from './useForm'
-import { Input } from './Input'
+import { useForm, advanced, array } from './useForm'
+import { FormInput } from './FormInput'
+import { SubformsArray } from './SubformsArray'
 
 function App() {
   const { Form } = useForm({
@@ -30,9 +31,6 @@ function App() {
             }),
             (value) => {
               return !value && 'should not be empty'
-              // new Promise((r) => r()).then(
-              //   () =>
-              // )
             },
           ],
           BLUR: [
@@ -45,22 +43,23 @@ function App() {
           PARENTS: ['password'],
         }),
       },
-      // array: array({
-      //   name: (val) => !val && 'should not be empty',
-      //   surname: {
-      //     DEFAULT: (val, i, name) =>
-      //       val === name && 'should not be equal with name',
-      //     parents: ['array.i.name'],
-      //   },
-      // }),
+      array: array({
+        name: delay((val) => !val && 'should not be empty', 1000),
+        surname: {
+          DEFAULT: (val, name) =>
+            val === name && 'should not be equal with name',
+          parents: ['array.i.name'],
+        },
+      }),
     },
     submit: console.log,
   })
 
   return (
     <Form>
-      <Input name="password" />
-      <Input name="passwordRepeat.deep" />
+      <FormInput name="password" />
+      <FormInput name="passwordRepeat.deep" />
+      <SubformsArray name="array" />
     </Form>
   )
 }

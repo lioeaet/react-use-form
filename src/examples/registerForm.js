@@ -30,9 +30,6 @@ function App() {
             }),
             (value) => {
               return !value && 'should not be empty'
-              // new Promise((r) => r()).then(
-              //   () =>
-              // )
             },
           ],
           VALIDATE: [
@@ -45,14 +42,6 @@ function App() {
           PARENTS: ['password'],
         }),
       },
-      // array: array({
-      //   name: (val) => !val && 'should not be empty',
-      //   surname: {
-      //     DEFAULT: (val, i, name) =>
-      //       val === name && 'should not be equal with name',
-      //     parents: ['array.i.name'],
-      //   },
-      // }),
     },
     submit: console.log,
   })

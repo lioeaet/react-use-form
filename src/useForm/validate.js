@@ -1,26 +1,35 @@
 import { getFieldFromInst } from './util'
 
 export const ADVANCED_VALIDATOR = Symbol('advanced validator')
-const ARRAY_FIELD = Symbol('array field')
+export const ARRAY_FIELD = Symbol('array field')
 
 export function getFieldsValidateOnChange(
   name,
   validatorsMap,
   childFields,
-  stateRef
+  stateRef,
+  arrayFields
 ) {
   const { validationEnabled } = stateRef.current
   const fieldsValidate = {}
 
   if (validationEnabled[name]) {
-    const validators = getFieldValidatorsOnChange(name, validatorsMap)
+    const validators = getFieldValidatorsOnChange(
+      name,
+      validatorsMap,
+      arrayFields
+    )
     if (validators) fieldsValidate[name] = validators
   }
 
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
       if (validationEnabled[fieldName]) {
-        const validators = getFieldValidatorsOnChange(fieldName, validatorsMap)
+        const validators = getFieldValidatorsOnChange(
+          fieldName,
+          validatorsMap,
+          arrayFields
+        )
         if (validators) fieldsValidate[fieldName] = validators
       }
     }
@@ -55,8 +64,9 @@ export function getFieldsValidateOnValidate(
   return fieldsValidate
 }
 
-function getFieldValidatorsOnChange(name, validatorsMap) {
-  const validator = getFieldFromInst(name, validatorsMap)
+function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
+  const validatorName = getValidatorName(name, arrayFields)
+  const validator = getFieldFromInst(validatorName, validatorsMap)
 
   if (validator?.[ADVANCED_VALIDATOR]) {
     if (typeof validator.CHANGE === 'function')
@@ -71,7 +81,7 @@ function getFieldValidatorsOnChange(name, validatorsMap) {
   } else if (Array.isArray(validator)) {
     return { validators: validator, argsFields: [name] }
   } else if (typeof validator === 'function')
-    return { validator: [validator.CHANGE], argsFields: [name] }
+    return { validators: [validator], argsFields: [name] }
 }
 
 function getValidateFieldAdvanced(name, validatorsMap, type) {
@@ -88,6 +98,18 @@ function getValidateFieldAdvanced(name, validatorsMap, type) {
     }
 
   return { validators: [], argsFields: [name] }
+}
+
+function getValidatorName(fieldName, arrayFields) {
+  const arrayFieldName = arrayFields.find((arrFieldName) =>
+    fieldName.startsWith(arrFieldName)
+  )
+  if (arrayFieldName) {
+    const pathAfterArray = fieldName.slice(arrayFieldName.length).split('.')
+    pathAfterArray.shift()
+    pathAfterArray.shift()
+    return `${arrayFieldName}.${pathAfterArray.join('.')}`
+  } else return fieldName
 }
 
 export function advanced(validator) {

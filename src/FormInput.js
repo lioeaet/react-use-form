@@ -1,6 +1,6 @@
 import { useField } from './useForm'
 
-export function Input({ name, val, setVal }) {
+export function FormInput({ name }) {
   const { value, error, loading, onChange, onBlur } = useField(name)
   return (
     <div>
