@@ -38,14 +38,15 @@ export function getFieldsValidateOnValidate(
   const { validationEnabled } = stateRef.current
   const fieldsValidate = {}
 
-  fieldsValidate[name] = getValidateFieldAdvanced(name, validatorsMap)
+  fieldsValidate[name] = getValidateFieldAdvanced(name, validatorsMap, 'BLUR')
 
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
       if (validationEnabled[fieldName]) {
         fieldsValidate[fieldName] = getValidateFieldAdvanced(
           fieldName,
-          validatorsMap
+          validatorsMap,
+          'BLUR'
         )
       }
     }
@@ -58,19 +59,19 @@ function getFieldValidatorsDefault(name, validatorsMap) {
   const validator = getFieldFromInst(name, validatorsMap)
 
   if (validator?.[ADVANCED_VALIDATOR]) {
-    if (typeof validator.DEFAULT === 'function')
+    if (typeof validator.CHANGE === 'function')
       return {
-        validators: [validator.DEFAULT],
+        validators: [validator.CHANGE],
         argsFields: [name, ...validator.PARENTS],
       }
     return {
-      validators: validator.DEFAULT,
+      validators: validator.CHANGE,
       argsFields: [name, ...validator.PARENTS],
     }
   } else if (Array.isArray(validator)) {
     return { validators: validator, argsFields: [name] }
   } else if (typeof validator === 'function')
-    return { validator: [validator.DEFAULT], argsFields: [name] }
+    return { validator: [validator.CHANGE], argsFields: [name] }
 }
 
 function getValidateFieldAdvanced(name, validatorsMap, type) {
@@ -78,10 +79,10 @@ function getValidateFieldAdvanced(name, validatorsMap, type) {
   if (validator?.[ADVANCED_VALIDATOR])
     return {
       validators:
-        typeof validator.VALIDATE === 'function'
-          ? [validator.VALIDATE]
-          : Array.isArray(validator.VALIDATE)
-          ? validator.VALIDATE
+        typeof validator[type] === 'function'
+          ? [validator[type]]
+          : Array.isArray(validator[type])
+          ? validator[type]
           : [],
       argsFields: [name, ...validator.PARENTS],
     }

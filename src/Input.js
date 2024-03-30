@@ -1,14 +1,14 @@
 import { useField } from './useForm'
 
 export function Input({ name, val, setVal }) {
-  const { value, error, loading, onChange, onEnableValidation } = useField(name)
+  const { value, error, loading, onChange, onBlur } = useField(name)
   return (
     <div>
       <div style={{ display: 'flex' }}>
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          onBlur={onEnableValidation}
+          onBlur={onBlur}
         />
         {loading && 'loading...'}
       </div>

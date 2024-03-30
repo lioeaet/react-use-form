@@ -5,7 +5,7 @@ import {
   getFieldsValidateOnChange,
   getFieldsValidateOnValidate,
 } from './validate'
-import { iterateDeep, getFieldFromInst } from './util'
+import { iterateDeep, clone, getFieldFromInst, setFieldToInst } from './util'
 
 const getInitState = (initValues) =>
   initValues?.then
@@ -14,7 +14,7 @@ const getInitState = (initValues) =>
         values: initValues,
         submitting: false,
         submitted: false,
-        failed: false,
+        failedError: null,
         validationEnabled: {},
         errors: {},
         loaders: {},
@@ -41,9 +41,6 @@ export function useForm({ initValues, validators, submit }) {
 
   const childFields = useChildFields(validators)
 
-  const iterationsCountRef = useRef(0)
-  const orderChangesByIterationRef = useRef({})
-
   const actions = {
     change: useCallback((name, value) => {
       dispatch({
@@ -64,9 +61,10 @@ export function useForm({ initValues, validators, submit }) {
       execValidateObject(fieldsValidateOnChange)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    changeArrayOrder: useCallback((name) => {
+    sort: useCallback((name) => {
       return // { prevIdx: newIdx }
     }, []),
+    spliceArray: useCallback(() => {}, []),
     enableValidation: useCallback((name) => {
       dispatch({
         type: 'enable validation',
@@ -99,9 +97,11 @@ export function useForm({ initValues, validators, submit }) {
     }, []),
     submit: useCallback(() => {
       dispatch({
-        type: 'submit',
+        type: 'submit start',
       })
-      return submit(stateRef.current.values).then((res) => {})
+      return submit(stateRef.current.values)
+        .then((res) => {})
+        .catch((e) => {})
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     setLoader: useCallback((name, loader) => {
@@ -157,6 +157,7 @@ export function useForm({ initValues, validators, submit }) {
 
           // eslint-disable-next-line no-loop-func
           result.then((error) => {
+            console.log(error)
             if (fieldsErrors[fieldName]) return
             if (
               lastValidateObjRef.current[fieldName] !== validateObj[fieldName]
@@ -168,13 +169,15 @@ export function useForm({ initValues, validators, submit }) {
               actions.setError(fieldName, error)
               actions.setLoader(fieldName, false)
             } else if (!promisesCount) {
-              actions.setLoader(fieldName, false)
               actions.setError(fieldName, null)
+              actions.setLoader(fieldName, false)
             }
           })
         } else {
           if (result) {
-            if (promisesCount) actions.setLoader(fieldName, false)
+            if (promisesCount) {
+              actions.setLoader(fieldName, false)
+            }
             fieldsErrors[fieldName] = result
             actions.setError(fieldName, result)
             continue outer
@@ -211,12 +214,13 @@ function reducer(state, action) {
   switch (action.type) {
     case 'change': {
       const { name, value } = action
+
+      const nextValues = clone(state.values)
+      setFieldToInst(name, value, nextValues)
+
       return {
         ...state,
-        values: {
-          ...state.values,
-          [name]: value,
-        },
+        values: nextValues,
       }
     }
     case 'enable validation': {
@@ -294,7 +298,7 @@ export function useField(name) {
     onChange: function onChange(value) {
       actions.change(name, value)
     },
-    onEnableValidation: function onEnableValidation() {
+    onBlur: function onEnableValidation() {
       actions.enableValidation(name)
     },
   }

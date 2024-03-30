@@ -5,7 +5,9 @@ function App() {
   const { Form } = useForm({
     initValues: {
       password: '',
-      passwordRepeat: '',
+      passwordRepeat: {
+        deep: '',
+      },
       array: [
         {
           name: 'oki',
@@ -20,27 +22,29 @@ function App() {
         delay((val) => val === '12' && 'should not be 12', 1000),
         delay((val) => val === '123' && 'should not be 123'),
       ],
-      passwordRepeat: advanced({
-        DEFAULT: [
-          delay((val, password) => {
-            return val !== password && 'should be equal with password'
-          }),
-          (value) => {
-            return !value && 'should not be empty'
-            // new Promise((r) => r()).then(
-            //   () =>
-            // )
-          },
-        ],
-        VALIDATE: [
-          (value, password) => {
-            return new Promise((r) => r()).then(
-              () => value === password && 'should not be equal with password'
-            )
-          },
-        ],
-        PARENTS: ['password'],
-      }),
+      passwordRepeat: {
+        deep: advanced({
+          CHANGE: [
+            delay((val, password) => {
+              return val !== password && 'should be equal with password'
+            }),
+            (value) => {
+              return !value && 'should not be empty'
+              // new Promise((r) => r()).then(
+              //   () =>
+              // )
+            },
+          ],
+          BLUR: [
+            (value, password) => {
+              return new Promise((r) => r()).then(
+                () => value === password && 'should not be equal with password'
+              )
+            },
+          ],
+          PARENTS: ['password'],
+        }),
+      },
       // array: array({
       //   name: (val) => !val && 'should not be empty',
       //   surname: {
@@ -56,7 +60,7 @@ function App() {
   return (
     <Form>
       <Input name="password" />
-      <Input name="passwordRepeat" />
+      <Input name="passwordRepeat.deep" />
     </Form>
   )
 }
