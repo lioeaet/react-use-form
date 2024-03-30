@@ -6,7 +6,10 @@ import {
 } from './util'
 import { getInitState } from './index.js'
 
-export function getReducer(replacementsDuringValidationRef) {
+export function getReducer(
+  replacementsDuringValidationRef,
+  lastValidatedValuesRef
+) {
   return function reducer(state, action) {
     switch (action.type) {
       case 'change': {
@@ -86,7 +89,17 @@ export function getReducer(replacementsDuringValidationRef) {
           arr.filter((_, j) => i !== j),
           nextState.values
         )
-        decrementArrayLoadersAndErrorsAfterI(state, nextState, name, i)
+
+        const nextLastValidatedValues = { ...lastValidatedValuesRef.current }
+        decrementArrayLoadersAndErrorsAfterI(
+          state,
+          nextState,
+          lastValidatedValuesRef.current,
+          nextLastValidatedValues,
+          name,
+          i
+        )
+        lastValidatedValuesRef.current = nextLastValidatedValues
 
         replacementsDuringValidationRef.current.forEach(
           (replacementsDuringValidation) => {
@@ -105,9 +118,22 @@ export function getReducer(replacementsDuringValidationRef) {
   }
 }
 
-function decrementArrayLoadersAndErrorsAfterI(oldState, newState, name, i) {
+function decrementArrayLoadersAndErrorsAfterI(
+  oldState,
+  newState,
+  oldLastValidatedValues,
+  newLastValidatedValues,
+  name,
+  i
+) {
   decrementArrayFieldsAfterI(name, i, oldState.loaders, newState.loaders)
   decrementArrayFieldsAfterI(name, i, oldState.errors, newState.errors)
+  decrementArrayFieldsAfterI(
+    name,
+    i,
+    oldLastValidatedValues,
+    newLastValidatedValues
+  )
 
   return newState
 }

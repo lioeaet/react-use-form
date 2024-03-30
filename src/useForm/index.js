@@ -25,11 +25,15 @@ export const getInitState = (initValues) =>
 export function useForm({ initValues, validators, submit }) {
   // [{ arrFieldName, type, args }]
   const replacementsDuringValidationRef = useRef([])
+
   // для ликвидации состояния гонки
   const lastValidateObjRef = useRef({})
 
+  // для отмены валидации уже валидированных значений
+  const lastValidatedValuesRef = useRef({})
+
   const [state, dispatch, stateRef] = useReducerWithRef(
-    getReducer(replacementsDuringValidationRef),
+    getReducer(replacementsDuringValidationRef, lastValidatedValuesRef),
     getInitState(initValues)
   )
 
@@ -166,6 +170,16 @@ export function useForm({ initValues, validators, submit }) {
       const values = argsFields.map((field) =>
         getFieldFromInst(field, stateRef.current.values)
       )
+
+      const shouldValidate =
+        !lastValidatedValuesRef.current[fieldName] ||
+        lastValidatedValuesRef.current[fieldName].some(
+          (val, i) => val !== values[i]
+        )
+      if (!shouldValidate) continue
+
+      lastValidatedValuesRef.current[fieldName] = values
+
       let promisesCount = 0
 
       for (let i = 0; i < validators.length; i++) {
