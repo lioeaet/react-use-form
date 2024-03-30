@@ -31,7 +31,6 @@ export function getFieldFromInst(name, inst) {
 }
 
 export function setFieldToInst(name, value, inst) {
-  console.log(name, value, inst)
   const path = name.split('.')
   let current = inst
   for (let i = 0; i < path.length; i++) {
@@ -40,4 +39,12 @@ export function setFieldToInst(name, value, inst) {
     else current = current[key]
   }
   return inst
+}
+
+export function splitFieldOfArrayName(arrayFieldName, fieldName) {
+  const keyAfterArray = fieldName.slice(arrayFieldName.length + 1)
+  return {
+    num: Number(keyAfterArray.slice(0, keyAfterArray.indexOf('.'))),
+    fieldEndPart: keyAfterArray.slice(keyAfterArray.indexOf('.') + 1),
+  }
 }

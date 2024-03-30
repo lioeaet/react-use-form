@@ -6,9 +6,10 @@ import {
   getFieldsValidateOnChange,
   getFieldsValidateOnValidate,
 } from './validate'
-import { iterateDeep, clone, getFieldFromInst, setFieldToInst } from './util'
+import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
+import { getReducer } from './reducer'
 
-const getInitState = (initValues) =>
+export const getInitState = (initValues) =>
   initValues?.then
     ? initValues
     : {
@@ -21,27 +22,16 @@ const getInitState = (initValues) =>
         loaders: {},
       }
 
-// совмещение асинхронной валидации с изменениями в массивах
-// (изменение имени поля для setError)
-
-// при changeOrder может измениться порядок
-// и валидация должна примениться к новым полям
-
-// orderUpdates = { arrayPath: iterationCount }
-
-// iterationCount
-// from iterationCount
-
 export function useForm({ initValues, validators, submit }) {
   // [{ arrFieldName, type, args }]
   const replacementsDuringValidationRef = useRef([])
+  // для ликвидации состояния гонки
+  const lastValidateObjRef = useRef({})
 
   const [state, dispatch, stateRef] = useReducerWithRef(
     getReducer(replacementsDuringValidationRef),
     getInitState(initValues)
   )
-  // для ликвидации состояния гонки
-  const lastValidateObjRef = useRef({})
 
   const { childFields, arrayFields } = useChildAndArrayFields(validators)
 
@@ -87,7 +77,6 @@ export function useForm({ initValues, validators, submit }) {
         childFields,
         stateRef
       )
-      console.log(fieldsValidateOnChange, fieldsValidateOnValidate)
 
       execValidateObject(
         joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate)
@@ -162,14 +151,14 @@ export function useForm({ initValues, validators, submit }) {
       replacementsDuringValidationRef.current.splice(i, 1)
     }
 
-    // при первой ошибке нужно её показать и сделать setLoading(false)
+    // при первой ошибке, показываем её и ставим setLoading(false)
     // (остальные валидации после этого игнорируем)
-    // при последней асинхронной валидации нужно
+    // при последней асинхронной валидации
     // если ошибки нет в ней и в fieldsErrors[fieldName]
-    // поставить setLoading(false) и setError(null)
+    // ставим setLoading(false) и setError(null)
     // если нет асинхронных валидаций,
-    // то setError(null) нужно делать на последней синхронной валидации
-    // а setLoading трогать не нужно
+    // то setError(null) делаем на последней синхронной валидации
+    // а setLoading трогаем
 
     outer: for (let fieldName in validateObj) {
       const { validators, argsFields } = validateObj[fieldName]
@@ -189,29 +178,37 @@ export function useForm({ initValues, validators, submit }) {
 
           // eslint-disable-next-line no-loop-func
           result.then((error) => {
-            const isInArray = arrayFields.some((arrField) =>
+            const arrayOfFieldName = arrayFields.find((arrField) =>
               fieldName.startsWith(arrField)
             )
-            if (isInArray) {
-              console.log(true)
+            let actualFieldName = fieldName
+            if (arrayOfFieldName) {
+              actualFieldName = updNameWithArrayReplacements(
+                arrayOfFieldName,
+                fieldName,
+                replacementsDuringValidation
+              )
+              if (!actualFieldName) return
             }
-            // if isInArray(fieldName)
-            // fieldName = updName(replacementsDuringValidation)
 
-            if (fieldsErrors[fieldName]) return
+            if (fieldsErrors[actualFieldName]) return
+            // для упрощения кода сверяем lastValidateObjRef
+            // по изначально заданному имени
             if (
               lastValidateObjRef.current[fieldName] !== validateObj[fieldName]
             )
               return
+
             --promisesCount
+
             if (error) {
-              fieldsErrors[fieldName] = error
-              actions.setError(fieldName, error)
-              actions.setLoader(fieldName, false)
+              fieldsErrors[actualFieldName] = error
+              actions.setError(actualFieldName, error)
+              actions.setLoader(actualFieldName, false)
               removeReplacementsDuringValidation()
             } else if (!promisesCount) {
-              actions.setError(fieldName, null)
-              actions.setLoader(fieldName, false)
+              actions.setError(actualFieldName, null)
+              actions.setLoader(actualFieldName, false)
               removeReplacementsDuringValidation()
             }
           })
@@ -253,104 +250,6 @@ export function useForm({ initValues, validators, submit }) {
 
 export const FormContext = createContext()
 
-function getReducer(replacementsDuringValidationRef) {
-  return function reducer(state, action) {
-    switch (action.type) {
-      case 'change': {
-        const { name, value } = action
-
-        const nextValues = clone(state.values)
-        setFieldToInst(name, value, nextValues)
-
-        return {
-          ...state,
-          values: nextValues,
-        }
-      }
-      case 'enable validation': {
-        const { name } = action
-        return {
-          ...state,
-          validationEnabled: {
-            ...state.validationEnabled,
-            [name]: true,
-          },
-        }
-      }
-      case 'set error': {
-        const { name, error } = action
-        return {
-          ...state,
-          errors: {
-            ...state.errors,
-            [name]: error,
-          },
-        }
-      }
-      case 'set loader': {
-        const { name, loader } = action
-        return {
-          ...state,
-          loaders: {
-            ...state.loaders,
-            [name]: loader,
-          },
-        }
-      }
-      case 'reset': {
-        const { initValues } = action
-        return getInitState(initValues)
-      }
-      // array methods
-      case 'push': {
-        const { name, value } = action
-        const nextValues = clone(state.values)
-        const arr = getFieldFromInst(name, state.values)
-        setFieldToInst(name, [...arr, value], nextValues)
-        return {
-          ...state,
-          values: nextValues,
-        }
-      }
-      case 'unshift': {
-        const { name, value } = action
-        const nextValues = clone(state.values)
-        const arr = getFieldFromInst(name, state.values)
-        setFieldToInst(name, [value, ...arr], nextValues)
-        return {
-          ...state,
-          values: nextValues,
-        }
-      }
-      case 'remove': {
-        const { name, i } = action
-        const nextValues = clone(state.values)
-        const arr = getFieldFromInst(name, state.values)
-        setFieldToInst(
-          name,
-          arr.filter((_, j) => i !== j),
-          nextValues
-        )
-        replacementsDuringValidationRef.current.forEach(
-          (replacementsDuringValidation) => {
-            replacementsDuringValidation.push({
-              type: 'remove',
-              name,
-              args: { i },
-            })
-          }
-        )
-        return {
-          ...state,
-          values: nextValues,
-        }
-      }
-      default:
-        throw new Error('unknown action')
-    }
-  }
-}
-
 function joinValidators(...validators) {
   const result = {}
   for (let validator of validators) {
@@ -364,6 +263,32 @@ function joinValidators(...validators) {
     }
   }
   return result
+}
+
+function updNameWithArrayReplacements(
+  arrayOfFieldName,
+  fieldName,
+  replacementsDuringValidation
+) {
+  return replacementsDuringValidation.reduce((nextFieldName, arrayAction) => {
+    if (!nextFieldName) return nextFieldName
+
+    switch (arrayAction.type) {
+      case 'remove': {
+        const { i } = arrayAction.args
+        const { num, fieldEndPart } = splitFieldOfArrayName(
+          arrayAction.name,
+          nextFieldName
+        )
+        if (num === i) return null
+        else if (num > i)
+          return `${arrayAction.name}.${num - 1}.${fieldEndPart}`
+        return nextFieldName
+      }
+      default:
+        return nextFieldName
+    }
+  }, fieldName)
 }
 
 function useChildAndArrayFields(validators) {

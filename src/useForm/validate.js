@@ -1,4 +1,4 @@
-import { getFieldFromInst } from './util'
+import { getFieldFromInst, splitFieldOfArrayName } from './util'
 
 export const ADVANCED_VALIDATOR = Symbol('advanced validator')
 export const ARRAY_FIELD = Symbol('array field')
@@ -105,10 +105,8 @@ function getValidatorName(fieldName, arrayFields) {
     fieldName.startsWith(arrFieldName)
   )
   if (arrayFieldName) {
-    const pathAfterArray = fieldName.slice(arrayFieldName.length).split('.')
-    pathAfterArray.shift()
-    pathAfterArray.shift()
-    return `${arrayFieldName}.${pathAfterArray.join('.')}`
+    const { fieldEndPart } = splitFieldOfArrayName(arrayFieldName, fieldName)
+    return `${arrayFieldName}.${fieldEndPart}`
   } else return fieldName
 }
 
