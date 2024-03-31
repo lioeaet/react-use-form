@@ -166,7 +166,6 @@ export function useForm({ initValues, validators, submit }) {
 
     outer: for (let fieldName in validateObj) {
       const { validators, argsFields } = validateObj[fieldName]
-      lastValidateObjRef.current[fieldName] = validateObj[fieldName]
       const values = argsFields.map((field) =>
         getFieldFromInst(field, stateRef.current.values)
       )
@@ -178,6 +177,7 @@ export function useForm({ initValues, validators, submit }) {
         )
       if (!shouldValidate) continue
 
+      lastValidateObjRef.current[fieldName] = validateObj[fieldName]
       lastValidatedValuesRef.current[fieldName] = values
 
       let promisesCount = 0
