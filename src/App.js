@@ -45,11 +45,11 @@ function App() {
       },
       array: array({
         name: delay((val) => !val && 'should not be empty', 1000),
-        surname: {
-          DEFAULT: (val, name) =>
+        surname: advanced({
+          CHANGE: (val, name) =>
             val === name && 'should not be equal with name',
-          parents: ['array.i.name'],
-        },
+          PARENTS: ['array.i.name'],
+        }),
       }),
     },
     submit: console.log,

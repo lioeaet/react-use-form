@@ -22,8 +22,26 @@ export function getFieldsValidateOnChange(
     if (validators) fieldsValidate[name] = validators
   }
 
-  if (childFields[name]) {
-    for (const fieldName of childFields[name]) {
+  // махинации с именем внутри массивов с учетом i
+  let nameInChildFields = name
+  let idxInArray
+  const arrayFieldName = arrayFields.find((arrFieldName) => {
+    return name.startsWith(arrFieldName)
+  })
+  if (arrayFieldName) {
+    const { num, fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
+    nameInChildFields = `${arrayFieldName}.i.${fieldEndPart}`
+    idxInArray = num
+  }
+
+  if (childFields[nameInChildFields]) {
+    for (let fieldName of childFields[nameInChildFields]) {
+      if (arrayFieldName) {
+        // добавляем индекс родителя из массивов
+        fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
+          arrayFieldName.length + 1
+        )}`
+      }
       if (validationEnabled[fieldName]) {
         const validators = getFieldValidatorsOnChange(
           fieldName,
@@ -42,12 +60,18 @@ export function getFieldsValidateOnValidate(
   name,
   validatorsMap,
   childFields,
+  arrayFields,
   stateRef
 ) {
   const { validationEnabled } = stateRef.current
   const fieldsValidate = {}
 
-  fieldsValidate[name] = getValidateFieldAdvanced(name, validatorsMap, 'BLUR')
+  fieldsValidate[name] = getValidateFieldAdvanced(
+    name,
+    validatorsMap,
+    arrayFields,
+    'BLUR'
+  )
 
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
@@ -55,6 +79,7 @@ export function getFieldsValidateOnValidate(
         fieldsValidate[fieldName] = getValidateFieldAdvanced(
           fieldName,
           validatorsMap,
+          arrayFields,
           'BLUR'
         )
       }
@@ -68,24 +93,36 @@ function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
   const validatorName = getValidatorName(name, arrayFields)
   const validator = getFieldFromInst(validatorName, validatorsMap)
 
+  const parentsWithNumInArrays =
+    validator.PARENTS?.map((parentName) => {
+      return replaceIOnNumIfInArray(arrayFields, parentName, name)
+    }) || []
+
   if (validator?.[ADVANCED_VALIDATOR]) {
     if (typeof validator.CHANGE === 'function')
       return {
         validators: [validator.CHANGE],
-        argsFields: [name, ...validator.PARENTS],
+        argsFields: [name, ...parentsWithNumInArrays],
       }
     return {
       validators: validator.CHANGE,
-      argsFields: [name, ...validator.PARENTS],
+      argsFields: [name, ...parentsWithNumInArrays],
     }
   } else if (Array.isArray(validator)) {
-    return { validators: validator, argsFields: [name] }
+    return {
+      validators: validator,
+      argsFields: [name, ...parentsWithNumInArrays],
+    }
   } else if (typeof validator === 'function')
-    return { validators: [validator], argsFields: [name] }
+    return {
+      validators: [validator],
+      argsFields: [name, ...parentsWithNumInArrays],
+    }
 }
 
-function getValidateFieldAdvanced(name, validatorsMap, type) {
-  const validator = getFieldFromInst(name, validatorsMap)
+function getValidateFieldAdvanced(name, validatorsMap, arrayFields, type) {
+  const validatorName = getValidatorName(name, arrayFields)
+  const validator = getFieldFromInst(validatorName, validatorsMap)
   if (validator?.[ADVANCED_VALIDATOR])
     return {
       validators:
@@ -94,7 +131,12 @@ function getValidateFieldAdvanced(name, validatorsMap, type) {
           : Array.isArray(validator[type])
           ? validator[type]
           : [],
-      argsFields: [name, ...validator.PARENTS],
+      argsFields: [
+        name,
+        ...validator.PARENTS?.map((parentName) => {
+          return replaceIOnNumIfInArray(arrayFields, parentName, name)
+        }),
+      ],
     }
 
   return { validators: [], argsFields: [name] }
@@ -108,6 +150,17 @@ function getValidatorName(fieldName, arrayFields) {
     const { fieldEndPart } = splitFieldOfArrayName(arrayFieldName, fieldName)
     return `${arrayFieldName}.${fieldEndPart}`
   } else return fieldName
+}
+
+function replaceIOnNumIfInArray(arrayFields, name, fieldWithNumInArray) {
+  const arrayFieldName = arrayFields.find((arrayFieldName) =>
+    name.startsWith(arrayFieldName)
+  )
+  if (!arrayFieldName) return name
+
+  const { num } = splitFieldOfArrayName(arrayFieldName, fieldWithNumInArray)
+  const { fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
+  return `${arrayFieldName}.${num}.${fieldEndPart}`
 }
 
 export function joinValidators(...validators) {

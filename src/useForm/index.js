@@ -84,6 +84,7 @@ export function useForm({ initValues, validators, submit }) {
         name,
         validators,
         childFields,
+        arrayFields,
         stateRef
       )
 
