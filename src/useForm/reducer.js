@@ -8,7 +8,8 @@ import { getInitState } from './index.js'
 
 export function getReducer(
   replacementsDuringValidationRef,
-  lastValidatedValuesRef
+  lastValidatedValuesRef,
+  lastValidateObjRef
 ) {
   return function reducer(state, action) {
     switch (action.type) {
@@ -91,15 +92,19 @@ export function getReducer(
         )
 
         const nextLastValidatedValues = { ...lastValidatedValuesRef.current }
+        const nextLastValidateObj = { ...lastValidateObjRef.current }
         decrementArrayLoadersAndErrorsAfterI(
           state,
           nextState,
           lastValidatedValuesRef.current,
           nextLastValidatedValues,
+          lastValidateObjRef,
+          nextLastValidateObj,
           name,
           i
         )
         lastValidatedValuesRef.current = nextLastValidatedValues
+        lastValidateObjRef.current = nextLastValidateObj
 
         replacementsDuringValidationRef.current.forEach(
           (replacementsDuringValidation) => {
@@ -123,6 +128,8 @@ function decrementArrayLoadersAndErrorsAfterI(
   newState,
   oldLastValidatedValues,
   newLastValidatedValues,
+  oldLastValidateObj,
+  newLastValidateObj,
   name,
   i
 ) {
@@ -134,6 +141,7 @@ function decrementArrayLoadersAndErrorsAfterI(
     oldLastValidatedValues,
     newLastValidatedValues
   )
+  decrementArrayFieldsAfterI(name, i, oldLastValidateObj, newLastValidateObj)
 
   return newState
 }

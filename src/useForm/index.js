@@ -33,7 +33,11 @@ export function useForm({ initValues, validators, submit }) {
   const lastValidatedValuesRef = useRef({})
 
   const [state, dispatch, stateRef] = useReducerWithRef(
-    getReducer(replacementsDuringValidationRef, lastValidatedValuesRef),
+    getReducer(
+      replacementsDuringValidationRef,
+      lastValidatedValuesRef,
+      lastValidateObjRef
+    ),
     getInitState(initValues)
   )
 
@@ -206,10 +210,9 @@ export function useForm({ initValues, validators, submit }) {
             }
 
             if (fieldsErrors[actualFieldName]) return
-            // для упрощения кода сверяем lastValidateObjRef
-            // по изначально заданному имени
             if (
-              lastValidateObjRef.current[fieldName] !== validateObj[fieldName]
+              lastValidateObjRef.current[actualFieldName] !==
+              validateObj[fieldName]
             )
               return
 
