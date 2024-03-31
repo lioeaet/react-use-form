@@ -110,6 +110,21 @@ function getValidatorName(fieldName, arrayFields) {
   } else return fieldName
 }
 
+export function joinValidators(...validators) {
+  const result = {}
+  for (let validator of validators) {
+    for (let fieldName in validator) {
+      if (!result[fieldName]) result[fieldName] = validator[fieldName]
+      else
+        result[fieldName].validators = [
+          ...result[fieldName].validators,
+          ...validator[fieldName].validators,
+        ]
+    }
+  }
+  return result
+}
+
 export function advanced(validator) {
   validator = { ...validator }
   validator[ADVANCED_VALIDATOR] = true

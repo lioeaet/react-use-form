@@ -5,6 +5,7 @@ import {
   ARRAY_FIELD,
   getFieldsValidateOnChange,
   getFieldsValidateOnValidate,
+  joinValidators,
 } from './validate'
 import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
 import { getReducer } from './reducer'
@@ -284,21 +285,6 @@ export function useForm({ initValues, validators, submit }) {
 }
 
 export const FormContext = createContext()
-
-function joinValidators(...validators) {
-  const result = {}
-  for (let validator of validators) {
-    for (let fieldName in validator) {
-      if (!result[fieldName]) result[fieldName] = validator[fieldName]
-      else
-        result[fieldName].validators = [
-          ...result[fieldName].validators,
-          ...validator[fieldName].validators,
-        ]
-    }
-  }
-  return result
-}
 
 function updNameWithArrayReplacements(
   arrayOfFieldName,
