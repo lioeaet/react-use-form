@@ -61,7 +61,7 @@ export function useForm({ initValues, validators, submit }) {
         stateRef,
         arrayFields
       )
-      execValidateObject(fieldsValidateOnChange)
+      execValidateObject(fieldsValidateOnChange, stateRef)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     spliceArray: useCallback(() => {}, []),
@@ -87,7 +87,8 @@ export function useForm({ initValues, validators, submit }) {
       )
 
       execValidateObject(
-        joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate)
+        joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate),
+        stateRef
       )
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
@@ -145,8 +146,9 @@ export function useForm({ initValues, validators, submit }) {
     }, []),
   }
 
-  function execValidateObject(validateObj) {
+  function execValidateObject(validateObj, stateRef) {
     const fieldsErrors = {}
+    const fieldsPromises = {}
 
     // если во время валидации произошли изменения индексов в массивах
     // применяем их к fieldName внутри валидаций
@@ -179,11 +181,16 @@ export function useForm({ initValues, validators, submit }) {
         lastValidatedValuesRef.current[fieldName].some(
           (val, i) => val !== values[i]
         )
-      if (!shouldValidate) continue
+      if (!shouldValidate) {
+        fieldsErrors[fieldName] = fieldsPromises[fieldName] =
+          stateRef.current.errors[fieldName]
+        continue
+      }
 
       lastValidateObjRef.current[fieldName] = validateObj[fieldName]
       lastValidatedValuesRef.current[fieldName] = values
 
+      let resolveValidationPromise
       let promisesCount = 0
 
       for (let i = 0; i < validators.length; i++) {
@@ -193,7 +200,12 @@ export function useForm({ initValues, validators, submit }) {
         if (result?.then) {
           if (!promisesCount) actions.setLoader(fieldName, true)
           promisesCount++
-
+          if (!fieldsPromises[fieldName]) {
+            // eslint-disable-next-line no-loop-func
+            fieldsPromises[fieldName] = new Promise((r) => {
+              resolveValidationPromise = r
+            })
+          }
           // eslint-disable-next-line no-loop-func
           result.then((error) => {
             const arrayOfFieldName = arrayFields.find((arrField) =>
@@ -223,10 +235,12 @@ export function useForm({ initValues, validators, submit }) {
               actions.setError(actualFieldName, error)
               actions.setLoader(actualFieldName, false)
               removeReplacementsDuringValidation()
+              resolveValidationPromise(error)
             } else if (!promisesCount) {
               actions.setError(actualFieldName, null)
               actions.setLoader(actualFieldName, false)
               removeReplacementsDuringValidation()
+              resolveValidationPromise(null)
             }
           })
         } else {
@@ -237,13 +251,17 @@ export function useForm({ initValues, validators, submit }) {
               actions.setLoader(fieldName, false)
               removeReplacementsDuringValidation()
             }
+            if (resolveValidationPromise) resolveValidationPromise(result)
             continue outer
           } else if (!promisesCount && i === validators.length - 1) {
             actions.setError(fieldName, null)
+            if (resolveValidationPromise) resolveValidationPromise(null)
           }
         }
       }
     }
+    const promisesArr = Object.values(fieldsPromises)
+    return Promise.all(promisesArr)
   }
 
   const Form = useCallback(function Form({ children }) {
