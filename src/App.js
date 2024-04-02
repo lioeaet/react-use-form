@@ -14,6 +14,10 @@ function App() {
           name: 'oki',
           surname: 'doki',
         },
+        {
+          name: 'bla',
+          surname: 'bla',
+        },
       ],
     },
     validators: {

@@ -4,7 +4,19 @@ import {
   setFieldToInst,
   splitFieldOfArrayName,
 } from './util'
-import { getInitState } from './index.js'
+
+export const getInitState = (initValues) =>
+  initValues?.then
+    ? initValues
+    : {
+        values: initValues,
+        submitting: false,
+        submitted: false,
+        failedError: null,
+        validationEnabled: {},
+        errors: {},
+        loaders: {},
+      }
 
 export function getReducer(
   replacementsDuringValidationRef,
@@ -59,7 +71,7 @@ export function getReducer(
         return getInitState(initValues)
       }
       // array methods
-      case 'push': {
+      case 'array replace': {
         const { name, value } = action
         const nextValues = clone(state.values)
         const arr = getFieldFromInst(name, state.values)
@@ -69,7 +81,7 @@ export function getReducer(
           values: nextValues,
         }
       }
-      case 'unshift': {
+      case 'array insert': {
         const { name, value } = action
         const nextValues = clone(state.values)
         const arr = getFieldFromInst(name, state.values)
@@ -79,12 +91,13 @@ export function getReducer(
           values: nextValues,
         }
       }
-      case 'remove': {
+      case 'array remove': {
         const { name, i } = action
         const nextState = clone(state)
         const arr = getFieldFromInst(name, state.values)
         // почистить loaders, errors
-        // переместить loaders и errors после i на 1 field вверх
+        // переместить поля в loaders и errors после i на 1 field вверх
+        // переместить поля в lastValidatedValues и lastValidateObj после i на 1 вверх
         setFieldToInst(
           name,
           arr.filter((_, j) => i !== j),
@@ -98,7 +111,7 @@ export function getReducer(
           nextState,
           lastValidatedValuesRef.current,
           nextLastValidatedValues,
-          lastValidateObjRef,
+          lastValidateObjRef.current,
           nextLastValidateObj,
           name,
           i
@@ -109,7 +122,7 @@ export function getReducer(
         replacementsDuringValidationRef.current.forEach(
           (replacementsDuringValidation) => {
             replacementsDuringValidation.push({
-              type: 'remove',
+              type: 'array remove',
               name,
               args: { i },
             })
@@ -135,6 +148,12 @@ function decrementArrayLoadersAndErrorsAfterI(
 ) {
   decrementArrayFieldsAfterI(name, i, oldState.loaders, newState.loaders)
   decrementArrayFieldsAfterI(name, i, oldState.errors, newState.errors)
+  decrementArrayFieldsAfterI(
+    name,
+    i,
+    oldState.validationEnabled,
+    newState.validationEnabled
+  )
   decrementArrayFieldsAfterI(
     name,
     i,

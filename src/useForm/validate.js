@@ -152,6 +152,8 @@ function getValidatorName(fieldName, arrayFields) {
   } else return fieldName
 }
 
+// функция для вложенных форм
+// для трансформации PARENTS: ['arr.i.oki'] в argsFields['arr.0.oki']
 function replaceIOnNumIfInArray(arrayFields, name, fieldWithNumInArray) {
   const arrayFieldName = arrayFields.find((arrayFieldName) =>
     name.startsWith(arrayFieldName)

@@ -8,20 +8,7 @@ import {
   joinValidators,
 } from './validate'
 import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
-import { getReducer } from './reducer'
-
-export const getInitState = (initValues) =>
-  initValues?.then
-    ? initValues
-    : {
-        values: initValues,
-        submitting: false,
-        submitted: false,
-        failedError: null,
-        validationEnabled: {},
-        errors: {},
-        loaders: {},
-      }
+import { getReducer, getInitState } from './reducer'
 
 export function useForm({ initValues, validators, submit }) {
   // [{ arrFieldName, type, args }]
@@ -62,7 +49,7 @@ export function useForm({ initValues, validators, submit }) {
         stateRef,
         arrayFields
       )
-      execValidateObject(fieldsValidateOnChange, stateRef)
+      execValidateObject(fieldsValidateOnChange)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     spliceArray: useCallback(() => {}, []),
@@ -89,8 +76,7 @@ export function useForm({ initValues, validators, submit }) {
       )
 
       execValidateObject(
-        joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate),
-        stateRef
+        joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate)
       )
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
@@ -130,17 +116,9 @@ export function useForm({ initValues, validators, submit }) {
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    push: useCallback((name, value) => {
-      dispatch({
-        type: 'push',
-        name,
-        value,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
     remove: useCallback((name, i) => {
       dispatch({
-        type: 'remove',
+        type: 'array remove',
         name,
         i,
       })
@@ -148,7 +126,7 @@ export function useForm({ initValues, validators, submit }) {
     }, []),
   }
 
-  function execValidateObject(validateObj, stateRef) {
+  function execValidateObject(validateObj) {
     const fieldsErrors = {}
     const fieldsPromises = {}
 
@@ -296,7 +274,7 @@ function updNameWithArrayReplacements(
     if (!nextFieldName) return nextFieldName
 
     switch (arrayAction.type) {
-      case 'remove': {
+      case 'array remove': {
         const { i } = arrayAction.args
         const { num, fieldEndPart } = splitFieldOfArrayName(
           arrayAction.name,
