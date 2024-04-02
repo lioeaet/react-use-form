@@ -12,6 +12,9 @@
 9. Валидация с предыдущими значениями инпутов возвращает закешированный результат ошибки
 
 ## TODO
+
+!избавиться от имени array.name, перевести всё на array.i.name
+
 1. Submit
 2. Array: replace, insert, remove
 3. inner arrays?
