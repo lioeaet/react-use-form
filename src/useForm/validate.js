@@ -25,8 +25,8 @@ export function getFieldsValidateOnChange(
   // махинации с именем внутри массивов с учетом i
   let nameInChildFields = name
   let idxInArray
-  const arrayFieldName = arrayFields.find((arrFieldName) => {
-    return name.startsWith(arrFieldName)
+  const arrayFieldName = arrayFields.find((arrayFieldName) => {
+    return name.startsWith(arrayFieldName)
   })
   if (arrayFieldName) {
     const { num, fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
@@ -143,8 +143,8 @@ function getValidateFieldAdvanced(name, validatorsMap, arrayFields, type) {
 }
 
 function getValidatorName(fieldName, arrayFields) {
-  const arrayFieldName = arrayFields.find((arrFieldName) =>
-    fieldName.startsWith(arrFieldName)
+  const arrayFieldName = arrayFields.find((arrayFieldName) =>
+    fieldName.startsWith(arrayFieldName)
   )
   if (arrayFieldName) {
     const { fieldEndPart } = splitFieldOfArrayName(arrayFieldName, fieldName)
@@ -153,7 +153,7 @@ function getValidatorName(fieldName, arrayFields) {
 }
 
 // функция для вложенных форм
-// для трансформации PARENTS: ['arr.i.oki'] в argsFields['arr.0.oki']
+// для трансформации PARENTS: ['array.i.oki'] в argsFields['array.0.oki']
 function replaceIOnNumIfInArray(arrayFields, name, fieldWithNumInArray) {
   const arrayFieldName = arrayFields.find((arrayFieldName) =>
     name.startsWith(arrayFieldName)

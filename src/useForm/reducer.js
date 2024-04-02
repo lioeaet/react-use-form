@@ -74,8 +74,8 @@ export function getReducer(
       case 'array replace': {
         const { name, value } = action
         const nextValues = clone(state.values)
-        const arr = getFieldFromInst(name, state.values)
-        setFieldToInst(name, [...arr, value], nextValues)
+        const array = getFieldFromInst(name, state.values)
+        setFieldToInst(name, [...array, value], nextValues)
         return {
           ...state,
           values: nextValues,
@@ -84,8 +84,8 @@ export function getReducer(
       case 'array insert': {
         const { name, value } = action
         const nextValues = clone(state.values)
-        const arr = getFieldFromInst(name, state.values)
-        setFieldToInst(name, [value, ...arr], nextValues)
+        const array = getFieldFromInst(name, state.values)
+        setFieldToInst(name, [value, ...array], nextValues)
         return {
           ...state,
           values: nextValues,
@@ -94,13 +94,13 @@ export function getReducer(
       case 'array remove': {
         const { name, i } = action
         const nextState = clone(state)
-        const arr = getFieldFromInst(name, state.values)
+        const array = getFieldFromInst(name, state.values)
         // почистить loaders, errors
         // переместить поля в loaders и errors после i на 1 field вверх
         // переместить поля в lastValidatedValues и lastValidateObj после i на 1 вверх
         setFieldToInst(
           name,
-          arr.filter((_, j) => i !== j),
+          array.filter((_, j) => i !== j),
           nextState.values
         )
 
