@@ -74,9 +74,12 @@ export function getFieldsValidateOnValidate(
     'BLUR'
   )
 
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // здесь в childFields array.i.name
   // но name = array.0.name
   // для массивов нужно заменить array.0.name->array.i.name
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  console.log(childFields)
   if (childFields[name]) {
     for (const fieldName of childFields[name]) {
       if (validationEnabled[fieldName]) {
