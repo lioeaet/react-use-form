@@ -11,6 +11,58 @@
 8. В библиотеке есть зарезервированый для массивов ключ поля 'i'.
 9. Валидация с предыдущими значениями инпутов возвращает закешированный результат ошибки
 
+```
+const FormApp = () => {
+  const { Form } = useForm({
+    initValues: {
+      account: '',
+      password: '',
+      passwordRepeat: ''
+    },
+    validators: {
+      account: (val) => !val && 'should not be empty',
+      password: [
+        (val) => !val && 'should not be empty',
+        (val) => val.length < 5 && 'at least 5 symbols'
+      ],
+      passwordRepeat: advanced({
+        PARENTS: ['password'],
+        CHANGE: [
+          (val) => !val && 'should not be empty',
+          (val) => val.length < 5 && 'at least 5 symbols'
+          (val, password) => val !== password && 'should be equal with password'
+        ]
+      })
+    }
+  })
+
+  return (
+    <Form>
+      <Input name="account" />
+      <Input name="password" />
+      <Input name="passwordRepeat" />
+    </Form>
+  )
+}
+
+function Input({ name }) {
+  const { value, error, loading, onChange, onBlur } = useField(name)
+  return (
+    <div>
+      <div style={{ display: 'flex' }}>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+        />
+        {loading && 'loading...'}
+      </div>
+      <div>{error}</div>
+    </div>
+  )
+}
+```
+
 ## TODO
 
 1. Array: replace, insert, remove
