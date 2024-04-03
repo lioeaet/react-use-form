@@ -36,6 +36,7 @@ export function getReducer(
         return {
           ...state,
           values: nextValues,
+          failedError: null,
         }
       }
       case 'enable validation': {
@@ -156,6 +157,23 @@ export function getReducer(
         return {
           ...state,
           validationEnabled: nextValidationEnabled,
+          submitting: true,
+          submitted: false,
+          failedError: null,
+        }
+      }
+      case 'submit success': {
+        return {
+          ...state,
+          submitting: false,
+          submitted: true,
+        }
+      }
+      case 'submit failure': {
+        return {
+          ...state,
+          submitting: false,
+          failedError: true,
         }
       }
       default:

@@ -101,11 +101,24 @@ export function useForm({ initValues, validators, submit }) {
           stateRef
         )
       )
-      console.log(errors)
 
-      // return submit(stateRef.current.values)
-      //   .then((res) => {})
-      //   .catch((e) => {})
+      if (errors.some((err) => err)) {
+        dispatch({
+          type: 'submit failure',
+        })
+      }
+
+      return submit(stateRef.current.values)
+        .then((res) => {
+          dispatch({
+            type: 'submit success',
+          })
+        })
+        .catch((e) => {
+          dispatch({
+            type: 'submit failure',
+          })
+        })
     },
     setLoader: useCallback((name, loader) => {
       dispatch({
@@ -314,7 +327,7 @@ function useChildAndArrayFields(validators) {
   const arrayFields = []
 
   // массивы в childFields создаются как array.child
-  // по хорошему нужно array.i.child
+  // вероятно, лучше переписать как везде array.i.child
 
   iterateDeep(validators, (path, val) => {
     if (val?.[ADVANCED_VALIDATOR]) {
@@ -342,7 +355,7 @@ export function useField(name) {
     onChange: function onChange(value) {
       actions.change(name, value)
     },
-    onBlur: function onEnableValidation() {
+    onBlur: function onBlur() {
       actions.blur(name)
     },
   }

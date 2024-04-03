@@ -13,11 +13,8 @@
 
 ## TODO
 
-!избавиться от имени array.name, перевести всё на array.i.name
-
-1. Submit
-2. Array: replace, insert, remove
-3. inner arrays?
+1. Array: replace, insert, remove
+2. inner arrays?
 
 
 useSessionForm
