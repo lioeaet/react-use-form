@@ -4,7 +4,7 @@ import {
   ADVANCED_VALIDATOR,
   ARRAY_FIELD,
   getFieldsValidateOnChange,
-  getFieldsValidateOnValidate,
+  getFieldsValidateOnBlur,
   joinValidators,
 } from './validate'
 import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
@@ -67,7 +67,7 @@ export function useForm({ initValues, validators, submit }) {
         arrayFields
       )
 
-      const fieldsValidateOnValidate = getFieldsValidateOnValidate(
+      const fieldsValidateOnValidate = getFieldsValidateOnBlur(
         name,
         validators,
         childFields,

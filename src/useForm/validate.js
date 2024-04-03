@@ -57,7 +57,7 @@ export function getFieldsValidateOnChange(
   return fieldsValidate
 }
 
-export function getFieldsValidateOnValidate(
+export function getFieldsValidateOnBlur(
   name,
   validatorsMap,
   childFields,
