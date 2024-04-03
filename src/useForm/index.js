@@ -49,7 +49,7 @@ export function useForm({ initValues, validators, submit }) {
         stateRef,
         arrayFields
       )
-      execValidateObject(fieldsValidateOnChange)
+      return execValidateObject(fieldsValidateOnChange).then(console.log)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     spliceArray: useCallback(() => {}, []),
@@ -75,9 +75,9 @@ export function useForm({ initValues, validators, submit }) {
         stateRef
       )
 
-      execValidateObject(
+      return execValidateObject(
         joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate)
-      )
+      ).then(console.log)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
@@ -170,6 +170,8 @@ export function useForm({ initValues, validators, submit }) {
       lastValidateObjRef.current[fieldName] = validateObj[fieldName]
       lastValidatedValuesRef.current[fieldName] = values
 
+      // для поля один промис
+      // выполняем его при первой ошибке, либо при завершении последней валидации
       let resolveValidationPromise
       let promisesCount = 0
 
@@ -232,10 +234,12 @@ export function useForm({ initValues, validators, submit }) {
               removeReplacementsDuringValidation()
             }
             if (resolveValidationPromise) resolveValidationPromise(result)
+            else fieldsPromises[fieldName] = result
             continue outer
           } else if (!promisesCount && i === validators.length - 1) {
             actions.setError(fieldName, null)
             if (resolveValidationPromise) resolveValidationPromise(null)
+            else fieldsPromises[fieldName] = null
           }
         }
       }

@@ -24,7 +24,7 @@ export function getFieldsValidateOnChange(
 
   // array.0.name -> array.i.name, 0, array
   const { abstractFieldName, idxInArray, arrayFieldName } =
-    getNameWithArrayVars(name, arrayFields)
+    getAbstractNameWithArrayVars(name, arrayFields)
 
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
@@ -67,7 +67,7 @@ export function getFieldsValidateOnBlur(
 
   // array.0.name -> array.i.name, 0, array
   const { abstractFieldName, idxInArray, arrayFieldName } =
-    getNameWithArrayVars(name, arrayFields)
+    getAbstractNameWithArrayVars(name, arrayFields)
 
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
@@ -92,7 +92,7 @@ export function getFieldsValidateOnBlur(
 }
 
 // array.0.name -> array.i.name, 0, array
-function getNameWithArrayVars(name, arrayFields) {
+function getAbstractNameWithArrayVars(name, arrayFields) {
   let abstractFieldName = name
   let idxInArray
   const arrayFieldName = arrayFields.find((arrayFieldName) =>
