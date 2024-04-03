@@ -22,7 +22,8 @@ export const getInitState = (initValues) =>
 export function getReducer(
   replacementsDuringValidationRef,
   lastValidatedValuesRef,
-  lastValidateObjRef
+  lastValidateObjRef,
+  arrayFields
 ) {
   return function reducer(state, action) {
     switch (action.type) {
@@ -97,7 +98,7 @@ export function getReducer(
         const nextState = clone(state)
         const array = getFieldFromInst(name, state.values)
         // почистить loaders, errors
-        // переместить поля в loaders и errors после i на 1 field вверх
+        // переместить поля в loaders, errors и validationEnabled после i на 1 field вверх
         // переместить поля в lastValidatedValues и lastValidateObj после i на 1 вверх
         setFieldToInst(
           name,
@@ -135,7 +136,21 @@ export function getReducer(
         const nextValidationEnabled = {}
         iterateDeep(state.values, (path, val) => {
           const fieldName = path.join('.')
-          nextValidationEnabled[fieldName] = true
+          const possibleArrayFieldName = path.join('.')
+          const possibleArrayWithElemFieldName = path
+            .slice(0, path.length - 1)
+            .join('.')
+
+          if (
+            fieldName &&
+            !arrayFields.some((arrayField) =>
+              [possibleArrayFieldName, possibleArrayWithElemFieldName].includes(
+                arrayField
+              )
+            )
+          ) {
+            nextValidationEnabled[fieldName] = true
+          }
         })
 
         return {

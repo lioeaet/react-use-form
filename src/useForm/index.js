@@ -22,16 +22,17 @@ export function useForm({ initValues, validators, submit }) {
   // для отмены валидации уже валидированных значений
   const lastValidatedValuesRef = useRef({})
 
+  const { childFields, arrayFields } = useChildAndArrayFields(validators)
+
   const [state, dispatch, stateRef] = useReducerWithRef(
     getReducer(
       replacementsDuringValidationRef,
       lastValidatedValuesRef,
-      lastValidateObjRef
+      lastValidateObjRef,
+      arrayFields
     ),
     getInitState(initValues)
   )
-
-  const { childFields, arrayFields } = useChildAndArrayFields(validators)
 
   const actions = {
     change: useCallback((name, value) => {
@@ -100,6 +101,7 @@ export function useForm({ initValues, validators, submit }) {
           stateRef
         )
       )
+      console.log(errors)
 
       // return submit(stateRef.current.values)
       //   .then((res) => {})
