@@ -22,23 +22,14 @@ export function getFieldsValidateOnChange(
     if (validators) fieldsValidate[name] = validators
   }
 
-  // махинации с именем внутри массивов с учетом i
-  let nameInChildFields = name
-  let idxInArray
-  // arrayFields.find('array.0.name') -> 'array'
-  const arrayFieldName = arrayFields.find((arrayFieldName) => {
-    return name.startsWith(arrayFieldName)
-  })
-  if (arrayFieldName) {
-    const { num, fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
-    nameInChildFields = `${arrayFieldName}.i.${fieldEndPart}`
-    idxInArray = num
-  }
+  // array.0.name -> array.i.name, 0, array
+  const { abstractFieldName, idxInArray, arrayFieldName } =
+    getNameWithArrayVars(name, arrayFields)
 
-  if (childFields[nameInChildFields]) {
-    for (let fieldName of childFields[nameInChildFields]) {
+  if (childFields[abstractFieldName]) {
+    for (let fieldName of childFields[abstractFieldName]) {
       if (arrayFieldName) {
-        // добавляем индекс родителя из массивов
+        // array.name -> array.i.name
         fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
           arrayFieldName.length + 1
         )}`
@@ -74,21 +65,14 @@ export function getFieldsValidateOnBlur(
     'BLUR'
   )
 
-  let nameInChildFields = name
-  let idxInArray
-  const arrayFieldName = arrayFields.find((arrayFieldName) =>
-    name.startsWith(arrayFieldName)
-  )
-  if (arrayFieldName) {
-    const { num, fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
-    nameInChildFields = `${arrayFieldName}.i.${fieldEndPart}`
-    idxInArray = num
-  }
+  // array.0.name -> array.i.name, 0, array
+  const { abstractFieldName, idxInArray, arrayFieldName } =
+    getNameWithArrayVars(name, arrayFields)
 
-  if (childFields[nameInChildFields]) {
-    for (let fieldName of childFields[nameInChildFields]) {
+  if (childFields[abstractFieldName]) {
+    for (let fieldName of childFields[abstractFieldName]) {
       if (arrayFieldName) {
-        // добавляем индекс родителя из массивов
+        // array.name -> array.i.name
         fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
           arrayFieldName.length + 1
         )}`
@@ -105,6 +89,21 @@ export function getFieldsValidateOnBlur(
   }
 
   return fieldsValidate
+}
+
+// array.0.name -> array.i.name, 0, array
+function getNameWithArrayVars(name, arrayFields) {
+  let abstractFieldName = name
+  let idxInArray
+  const arrayFieldName = arrayFields.find((arrayFieldName) =>
+    name.startsWith(arrayFieldName)
+  )
+  if (arrayFieldName) {
+    const { num, fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
+    abstractFieldName = `${arrayFieldName}.i.${fieldEndPart}`
+    idxInArray = num
+  }
+  return { abstractFieldName, idxInArray, arrayFieldName }
 }
 
 function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
