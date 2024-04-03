@@ -74,14 +74,25 @@ export function getFieldsValidateOnValidate(
     'BLUR'
   )
 
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // здесь в childFields array.i.name
-  // но name = array.0.name
-  // для массивов нужно заменить array.0.name->array.i.name
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  console.log(childFields)
-  if (childFields[name]) {
-    for (const fieldName of childFields[name]) {
+  let nameInChildFields = name
+  let idxInArray
+  const arrayFieldName = arrayFields.find((arrayFieldName) =>
+    name.startsWith(arrayFieldName)
+  )
+  if (arrayFieldName) {
+    const { num, fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
+    nameInChildFields = `${arrayFieldName}.i.${fieldEndPart}`
+    idxInArray = num
+  }
+
+  if (childFields[nameInChildFields]) {
+    for (let fieldName of childFields[nameInChildFields]) {
+      if (arrayFieldName) {
+        // добавляем индекс родителя из массивов
+        fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
+          arrayFieldName.length + 1
+        )}`
+      }
       if (validationEnabled[fieldName]) {
         fieldsValidate[fieldName] = getValidateFieldAdvanced(
           fieldName,
