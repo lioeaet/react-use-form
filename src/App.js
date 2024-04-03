@@ -3,7 +3,7 @@ import { FormInput } from './FormInput'
 import { SubformsArray } from './SubformsArray'
 
 function App() {
-  const { Form } = useForm({
+  const { Form, actions } = useForm({
     initValues: {
       password: '',
       passwordRepeat: {
@@ -11,13 +11,13 @@ function App() {
       },
       array: [
         {
-          name: 'oki',
+          name: 'doki',
           surname: 'doki',
-        },
+        } /* ,
         {
           name: 'bla',
           surname: 'bla',
-        },
+        }, */,
       ],
     },
     validators: {
@@ -60,10 +60,11 @@ function App() {
   })
 
   return (
-    <Form>
+    <Form onSubmit={actions.submit}>
       <FormInput name="password" />
       <FormInput name="passwordRepeat.deep" />
       <SubformsArray name="array" />
+      <button type="submit">submit</button>
     </Form>
   )
 }

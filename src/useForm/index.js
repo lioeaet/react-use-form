@@ -5,10 +5,12 @@ import {
   ARRAY_FIELD,
   getFieldsValidateOnChange,
   getFieldsValidateOnBlur,
+  getFieldsValidateOnSubmit,
   joinValidators,
 } from './validate'
 import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
 import { getReducer, getInitState } from './reducer'
+export { advanced, array } from './validate'
 
 export function useForm({ initValues, validators, submit }) {
   // [{ arrFieldName, type, args }]
@@ -49,7 +51,7 @@ export function useForm({ initValues, validators, submit }) {
         stateRef,
         arrayFields
       )
-      return execValidateObject(fieldsValidateOnChange).then(console.log)
+      return execValidateObject(fieldsValidateOnChange)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     spliceArray: useCallback(() => {}, []),
@@ -77,7 +79,7 @@ export function useForm({ initValues, validators, submit }) {
 
       return execValidateObject(
         joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate)
-      ).then(console.log)
+      )
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
@@ -85,13 +87,23 @@ export function useForm({ initValues, validators, submit }) {
       // validateField()
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    submit: () => {
+    submit: async (e) => {
+      e.preventDefault()
       dispatch({
         type: 'submit start',
       })
-      return submit(stateRef.current.values)
-        .then((res) => {})
-        .catch((e) => {})
+      const errors = await execValidateObject(
+        getFieldsValidateOnSubmit(
+          validators,
+          childFields,
+          arrayFields,
+          stateRef
+        )
+      )
+
+      // return submit(stateRef.current.values)
+      //   .then((res) => {})
+      //   .catch((e) => {})
     },
     setLoader: useCallback((name, loader) => {
       dispatch({
@@ -248,9 +260,9 @@ export function useForm({ initValues, validators, submit }) {
     return Promise.all(promisesArr)
   }
 
-  const Form = useCallback(function Form({ children }) {
+  const Form = useCallback(function Form({ children, ...restProps }) {
     return (
-      <form>
+      <form {...restProps}>
         <FormContext.Provider
           value={{
             ...stateRef.current,
@@ -306,10 +318,6 @@ function useChildAndArrayFields(validators) {
     if (val?.[ADVANCED_VALIDATOR]) {
       val.PARENTS?.forEach?.((parentName) => {
         const childName = path.join('.')
-        // const arrayParent = arrayFields.find((arrayName) =>
-        //   childName.startsWith(childName)
-        // )
-        // if (arrayParent) childName = `${arrayParent}.i.${childName.slice(arrayParent.length + 1)}`
 
         if (!childFields[parentName]) childFields[parentName] = [childName]
         else childFields.push(childName)
@@ -346,13 +354,3 @@ export function useSubformsArray(name) {
     push: (value) => actions.push(name, value),
   }
 }
-
-export const advanced = (validatorObj) => ({
-  ...validatorObj,
-  [ADVANCED_VALIDATOR]: true,
-})
-
-export const array = (validatorObj) => ({
-  ...validatorObj,
-  [ARRAY_FIELD]: true,
-})

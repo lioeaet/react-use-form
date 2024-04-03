@@ -10,7 +10,7 @@ export function iterateDeep(value, cb, path = []) {
   }
 }
 
-function isPlainObj(x) {
+export function isPlainObj(x) {
   return x?.__proto__ === {}.__proto__
 }
 
@@ -23,7 +23,6 @@ export function clone(x) {
   else return x
 }
 
-// name.split не так проста из-за i в массивах
 export function getFieldFromInst(name, inst) {
   return name
     .split('.')

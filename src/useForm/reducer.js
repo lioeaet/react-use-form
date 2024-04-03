@@ -3,6 +3,7 @@ import {
   getFieldFromInst,
   setFieldToInst,
   splitFieldOfArrayName,
+  iterateDeep,
 } from './util'
 
 export const getInitState = (initValues) =>
@@ -106,7 +107,7 @@ export function getReducer(
 
         const nextLastValidatedValues = { ...lastValidatedValuesRef.current }
         const nextLastValidateObj = { ...lastValidateObjRef.current }
-        decrementArrayLoadersAndErrorsAfterI(
+        decrementArrayNamesAfterI(
           state,
           nextState,
           lastValidatedValuesRef.current,
@@ -130,13 +131,25 @@ export function getReducer(
         )
         return nextState
       }
+      case 'submit start': {
+        const nextValidationEnabled = {}
+        iterateDeep(state.values, (path, val) => {
+          const fieldName = path.join('.')
+          nextValidationEnabled[fieldName] = true
+        })
+
+        return {
+          ...state,
+          validationEnabled: nextValidationEnabled,
+        }
+      }
       default:
         throw new Error('unknown action')
     }
   }
 }
 
-function decrementArrayLoadersAndErrorsAfterI(
+function decrementArrayNamesAfterI(
   oldState,
   newState,
   oldLastValidatedValues,

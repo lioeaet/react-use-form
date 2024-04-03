@@ -1,4 +1,4 @@
-import { getFieldFromInst, splitFieldOfArrayName } from './util'
+import { getFieldFromInst, splitFieldOfArrayName, isPlainObj } from './util'
 
 export const ADVANCED_VALIDATOR = Symbol('advanced validator')
 export const ARRAY_FIELD = Symbol('array field')
@@ -89,6 +89,112 @@ export function getFieldsValidateOnBlur(
   }
 
   return fieldsValidate
+}
+
+// submit
+// пройтись по всем полям, добавляя валидаторы, если есть
+// пройтись по всем валидаторам и добавить их для полей, которых нет в values
+export function getFieldsValidateOnSubmit(
+  validatorsMap,
+  childFields,
+  arrayFields,
+  stateRef
+) {
+  const fieldsValidate = {}
+  const arraySubformsValidate = {}
+
+  iterateValidationMap(validatorsMap, (path, val) => {
+    const name = path.join('.')
+    const parentArrayName = arrayFields.find(
+      (arrayFieldName) => path.join('.') === arrayFieldName
+    )
+    if (!parentArrayName) {
+      fieldsValidate[name] = getFieldValidateOnSubmit(name, val, arrayFields)
+    } else {
+      arraySubformsValidate[name] = val
+    }
+  })
+
+  for (const arrayName in arraySubformsValidate) {
+    const value = getFieldFromInst(arrayName, stateRef.current.values)
+    for (let i = 0; i < value.length; i++) {
+      const subformValidationMap = arraySubformsValidate[arrayName]
+      // удаляем этот флаг для итераций через iterateValidationMap
+      // после выполнения функции возвращаем
+      delete subformValidationMap[ARRAY_FIELD]
+
+      iterateValidationMap(subformValidationMap, (path, val) => {
+        const fullName = `${arrayName}.${i}.${path.join('.')}`
+        fieldsValidate[fullName] = getFieldValidateOnSubmit(
+          fullName,
+          val,
+          arrayFields
+        )
+      })
+      subformValidationMap[ARRAY_FIELD] = true
+    }
+  }
+
+  return fieldsValidate
+}
+
+function getFieldValidateOnSubmit(name, val, arrayFields) {
+  if (Array.isArray(val)) {
+    return {
+      validators: val,
+      argsFields: [name],
+    }
+  } else if (typeof val === 'function') {
+    return {
+      validators: [val],
+      argsFields: [name],
+    }
+  } else {
+    const validators = []
+    if (Array.isArray(val.CHANGE)) {
+      validators.push(...val.CHANGE)
+    } else if (typeof val.CHANGE === 'function') {
+      validators.push(val.CHANGE)
+    }
+    if (Array.isArray(val.BLUR)) {
+      validators.push(...val.BLUR)
+    } else if (typeof val.BLUR === 'function') {
+      validators.push(val.BLUR)
+    }
+    if (Array.isArray(val.SUBMIT)) {
+      validators.push(...val.SUBMIT)
+    } else if (typeof val.SUBMIT === 'function') {
+      validators.push(val.SUBMIT)
+    }
+
+    return {
+      validators,
+      argsFields: [
+        name,
+        ...val.PARENTS?.map((parentName) => {
+          return replaceIOnNumIfInArray(arrayFields, parentName, name)
+        }),
+      ],
+    }
+  }
+}
+
+function iterateValidationMap(value, cb, path = []) {
+  if (isPlainObj(value)) {
+    if (value[ADVANCED_VALIDATOR]) {
+      cb(path, value)
+    } else {
+      for (let key in value) {
+        if (value[ARRAY_FIELD]) {
+          cb([...path], value)
+        } else {
+          iterateValidationMap(value[key], cb, [...path, key])
+        }
+      }
+    }
+  } else {
+    cb(path, value)
+  }
 }
 
 // array.0.name -> array.i.name, 0, array
@@ -204,15 +310,12 @@ export function joinValidators(...validators) {
   return result
 }
 
-export function advanced(validator) {
-  validator = { ...validator }
-  validator[ADVANCED_VALIDATOR] = true
-  return validator
-}
+export const advanced = (validatorObj) => ({
+  ...validatorObj,
+  [ADVANCED_VALIDATOR]: true,
+})
 
-export function array(field) {
-  return {
-    type: ARRAY_FIELD,
-    field: field,
-  }
-}
+export const array = (validatorObj) => ({
+  ...validatorObj,
+  [ARRAY_FIELD]: true,
+})
