@@ -74,21 +74,47 @@ export function getReducer(
         return getInitState(initValues)
       }
       // array methods
-      case 'array replace': {
-        const { name, value } = action
-        const nextValues = clone(state.values)
-        const array = getFieldFromInst(name, state.values)
-        setFieldToInst(name, [...array, value], nextValues)
-        return {
-          ...state,
-          values: nextValues,
-        }
-      }
       case 'array insert': {
-        const { name, value } = action
+        const { name, value, i } = action
+        const nextState = clone(state)
+        const array = getFieldFromInst(name, state.values)
+        const nextArray = [...array.slice(0, i), value, ...array.slice(i + 1)]
+
+        setFieldToInst(name, nextArray, nextState.values)
+
+        const nextLastValidatedValues = { ...lastValidatedValuesRef.current }
+        const nextLastValidateObj = { ...lastValidateObjRef.current }
+
+        incrementArrayNamesAfterI(
+          name,
+          i,
+          state,
+          nextState,
+          lastValidatedValuesRef.current,
+          nextLastValidatedValues,
+          lastValidateObjRef.current,
+          nextLastValidateObj
+        )
+        lastValidatedValuesRef.current = nextLastValidatedValues
+        lastValidateObjRef.current = nextLastValidateObj
+
+        replacementsDuringValidationRef.current.forEach(
+          (replacementsDuringValidation) => {
+            replacementsDuringValidation.push({
+              type: 'array insert',
+              name,
+              args: { i },
+            })
+          }
+        )
+
+        return nextState
+      }
+      case 'array replace': {
+        const { name, from, to } = action
         const nextValues = clone(state.values)
         const array = getFieldFromInst(name, state.values)
-        setFieldToInst(name, [value, ...array], nextValues)
+        // setFieldToInst(name, [...array, value], nextValues)
         return {
           ...state,
           values: nextValues,
@@ -109,15 +135,16 @@ export function getReducer(
 
         const nextLastValidatedValues = { ...lastValidatedValuesRef.current }
         const nextLastValidateObj = { ...lastValidateObjRef.current }
+
         decrementArrayNamesAfterI(
+          name,
+          i,
           state,
           nextState,
           lastValidatedValuesRef.current,
           nextLastValidatedValues,
           lastValidateObjRef.current,
-          nextLastValidateObj,
-          name,
-          i
+          nextLastValidateObj
         )
         lastValidatedValuesRef.current = nextLastValidatedValues
         lastValidateObjRef.current = nextLastValidateObj
@@ -183,44 +210,82 @@ export function getReducer(
 }
 
 function decrementArrayNamesAfterI(
+  arrayName,
+  i,
   oldState,
   newState,
   oldLastValidatedValues,
   newLastValidatedValues,
   oldLastValidateObj,
-  newLastValidateObj,
-  name,
-  i
+  newLastValidateObj
 ) {
-  decrementArrayFieldsAfterI(name, i, oldState.loaders, newState.loaders)
-  decrementArrayFieldsAfterI(name, i, oldState.errors, newState.errors)
-  decrementArrayFieldsAfterI(
-    name,
+  processRemoveInInst(arrayName, i, oldState.loaders, newState.loaders)
+  processRemoveInInst(arrayName, i, oldState.errors, newState.errors)
+  processRemoveInInst(
+    arrayName,
     i,
     oldState.validationEnabled,
     newState.validationEnabled
   )
-  decrementArrayFieldsAfterI(
-    name,
+  processRemoveInInst(
+    arrayName,
     i,
     oldLastValidatedValues,
     newLastValidatedValues
   )
-  decrementArrayFieldsAfterI(name, i, oldLastValidateObj, newLastValidateObj)
+  processRemoveInInst(arrayName, i, oldLastValidateObj, newLastValidateObj)
 
   return newState
 }
 
-function decrementArrayFieldsAfterI(name, i, oldSrc, newSrc) {
+function processRemoveInInst(arrayName, i, oldSrc, newSrc) {
   for (const fieldName in newSrc) {
-    if (fieldName.startsWith(name)) {
-      const { num, fieldEndPart } = splitFieldOfArrayName(name, fieldName)
+    if (fieldName.startsWith(arrayName)) {
+      const { num, fieldEndPart } = splitFieldOfArrayName(arrayName, fieldName)
       if (num === i) {
         delete newSrc[fieldName]
       } else if (num > i) {
-        const newFieldName = `${name}.${num - 1}.${fieldEndPart}`
+        const newFieldName = `${arrayName}.${num - 1}.${fieldEndPart}`
         newSrc[newFieldName] = oldSrc[fieldName]
-        delete newSrc[fieldName]
+      }
+    }
+  }
+}
+
+function incrementArrayNamesAfterI(
+  arrayName,
+  i,
+  oldState,
+  newState,
+  oldLastValidatedValues,
+  newLastValidatedValues,
+  oldLastValidateObj,
+  newLastValidateObj
+) {
+  processInsertInInst(arrayName, i, oldState.loaders, newState.loaders)
+  processInsertInInst(arrayName, i, oldState.errors, newState.errors)
+  processInsertInInst(
+    arrayName,
+    i,
+    oldState.validationEnabled,
+    newState.validationEnabled
+  )
+  processInsertInInst(
+    arrayName,
+    i,
+    oldLastValidatedValues,
+    newLastValidatedValues
+  )
+  processInsertInInst(arrayName, i, oldLastValidateObj, newLastValidateObj)
+}
+
+function processInsertInInst(arrayName, i, oldSrc, newSrc) {
+  for (const fieldName in newSrc) {
+    if (fieldName.startsWith(arrayName)) {
+      const { num, fieldEndPart } = splitFieldOfArrayName(arrayName, fieldName)
+      if (num >= i) {
+        const newFieldName = `${arrayName}.${num + 1}.${fieldEndPart}`
+        newSrc[newFieldName] = oldSrc[fieldName]
       }
     }
   }

@@ -151,6 +151,15 @@ export function useForm({ initValues, validators, submit }) {
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
+    insert: useCallback((name, i, value) => {
+      dispatch({
+        type: 'array insert',
+        name,
+        i,
+        value,
+      })
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
   }
 
   function execValidateObject(validateObj) {
@@ -222,6 +231,8 @@ export function useForm({ initValues, validators, submit }) {
             )
             let actualFieldName = fieldName
             if (arrayOfFieldName) {
+              // меняем имя поля на актуальное
+              // если в родительском массиве перестановки
               actualFieldName = updNameWithArrayReplacements(
                 arrayOfFieldName,
                 fieldName,
@@ -316,6 +327,15 @@ function updNameWithArrayReplacements(
           return `${arrayAction.name}.${num - 1}.${fieldEndPart}`
         return nextFieldName
       }
+      case 'array insert': {
+        const { i } = arrayAction.args
+        const { num, fieldEndPart } = splitFieldOfArrayName(
+          arrayAction.name,
+          nextFieldName
+        )
+        if (num >= i) return `${arrayAction.name}.${num + 1}.${fieldEndPart}`
+        return nextFieldName
+      }
       default:
         return nextFieldName
     }
@@ -366,6 +386,6 @@ export function useSubformsArray(name) {
   return {
     value: getFieldFromInst(name, values),
     remove: (i) => actions.remove(name, i),
-    push: (value) => actions.push(name, value),
+    insert: (i, value) => actions.insert(name, i, value),
   }
 }

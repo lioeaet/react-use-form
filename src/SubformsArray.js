@@ -3,7 +3,7 @@ import { FormInput } from './FormInput'
 import { useSubformsArray } from './useForm'
 
 export function SubformsArray({ name }) {
-  const { value, push, unshift, splice, remove } = useSubformsArray(name)
+  const { value, insert, unshift, splice, remove } = useSubformsArray(name)
 
   return (
     <>
@@ -14,7 +14,9 @@ export function SubformsArray({ name }) {
           <div onClick={() => remove(i)}>remove</div>
         </Fragment>
       ))}
-      <div onClick={() => push({ name: '', surname: '' })}>add</div>
+      <div onClick={() => insert(value.length, { name: '', surname: '' })}>
+        add
+      </div>
     </>
   )
 }
