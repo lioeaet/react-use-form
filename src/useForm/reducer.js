@@ -78,7 +78,7 @@ export function getReducer(
         const { name, value, i } = action
         const nextState = clone(state)
         const array = getFieldFromInst(name, state.values)
-        const nextArray = [...array.slice(0, i), value, ...array.slice(i + 1)]
+        const nextArray = [...array.slice(0, i), value, ...array.slice(i)]
 
         setFieldToInst(name, nextArray, nextState.values)
 
@@ -276,17 +276,17 @@ function incrementArrayNamesAfterI(
   const newLoaders = {}
   const newErrors = {}
   const newValidationEnabled = {}
-  processInsertInInst(arrayName, i, oldState.loaders, newState.loaders)
+  processInsertInInst(arrayName, i, oldState.loaders, newLoaders)
   newState.loaders = newLoaders
 
-  processInsertInInst(arrayName, i, oldState.errors, newState.errors)
+  processInsertInInst(arrayName, i, oldState.errors, newErrors)
   newState.errors = newErrors
 
   processInsertInInst(
     arrayName,
     i,
     oldState.validationEnabled,
-    newState.validationEnabled
+    newValidationEnabled
   )
   newState.validationEnabled = newValidationEnabled
 
