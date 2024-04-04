@@ -232,7 +232,7 @@ export function useForm({ initValues, validators, submit }) {
             let actualFieldName = fieldName
             if (arrayOfFieldName) {
               // меняем имя поля на актуальное
-              // если в родительском массиве перестановки
+              // если во время валидации в родительском массиве перестановки
               actualFieldName = updNameWithArrayReplacements(
                 arrayOfFieldName,
                 fieldName,
