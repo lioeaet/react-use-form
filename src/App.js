@@ -13,11 +13,15 @@ function App() {
         {
           name: 'doki',
           surname: 'doki',
-        } /* ,
+        },
         {
           name: 'bla',
           surname: 'bla',
-        }, */,
+        },
+        {
+          name: '',
+          surname: '',
+        },
       ],
     },
     validators: {
