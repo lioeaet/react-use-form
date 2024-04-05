@@ -112,13 +112,54 @@ export function getReducer(
       }
       case 'array replace': {
         const { name, from, to } = action
-        const nextValues = clone(state.values)
+        const nextState = clone(state)
         const array = getFieldFromInst(name, state.values)
-        // setFieldToInst(name, [...array, value], nextValues)
-        return {
-          ...state,
-          values: nextValues,
+        let nextArray
+        if (from < to) {
+          nextArray = [
+            ...array.slice(0, from),
+            ...array.slice(from + 1, to + 1),
+            array[from],
+            ...array.slice(to + 1),
+          ]
+        } else {
+          nextArray = [
+            ...array.slice(0, to),
+            array[from],
+            ...array.slice(to, from),
+            ...array.slice(from + 1),
+          ]
         }
+
+        setFieldToInst(name, nextArray, nextState.values)
+
+        const nextLastValidatedValues = {}
+        const nextLastValidateObj = {}
+
+        incrementOrDecrementNamesOnReplace(
+          name,
+          from,
+          to,
+          state,
+          nextState,
+          lastValidatedValuesRef.current,
+          nextLastValidatedValues,
+          lastValidateObjRef.current,
+          nextLastValidateObj
+        )
+        lastValidatedValuesRef.current = nextLastValidatedValues
+        lastValidateObjRef.current = nextLastValidateObj
+
+        replacementsDuringValidationRef.current.forEach(
+          (replacementsDuringValidation) => {
+            replacementsDuringValidation.push({
+              type: 'array replace',
+              name,
+              args: { from, to },
+            })
+          }
+        )
+        return nextState
       }
       case 'array remove': {
         const { name, i } = action
@@ -308,6 +349,86 @@ function processInsertInInst(arrayName, i, oldSrc, newSrc) {
         newSrc[newFieldName] = oldSrc[fieldName]
       } else {
         newSrc[fieldName] = oldSrc[fieldName]
+      }
+    }
+  }
+}
+
+function incrementOrDecrementNamesOnReplace(
+  arrayName,
+  from,
+  to,
+  oldState,
+  newState,
+  oldLastValidatedValues,
+  newLastValidatedValues,
+  oldLastValidateObj,
+  newLastValidateObj
+) {
+  const newLoaders = {}
+  const newErrors = {}
+  const newValidationEnabled = {}
+  processReplaceInInst(arrayName, from, to, oldState.loaders, newLoaders)
+  newState.loaders = newLoaders
+
+  processReplaceInInst(arrayName, from, to, oldState.errors, newErrors)
+  newState.errors = newErrors
+
+  processReplaceInInst(
+    arrayName,
+    from,
+    to,
+    oldState.validationEnabled,
+    newValidationEnabled
+  )
+  newState.validationEnabled = newValidationEnabled
+
+  processReplaceInInst(
+    arrayName,
+    from,
+    to,
+    oldLastValidatedValues,
+    newLastValidatedValues
+  )
+  processReplaceInInst(
+    arrayName,
+    from,
+    to,
+    oldLastValidateObj,
+    newLastValidateObj
+  )
+}
+
+function processReplaceInInst(arrayName, from, to, oldSrc, newSrc) {
+  for (const fieldName in oldSrc) {
+    if (fieldName.startsWith(arrayName)) {
+      const { num, fieldEndPart } = splitFieldOfArrayName(arrayName, fieldName)
+      if (from < to) {
+        // decrement полей от from + 1 до to
+        // для поля from поставить значение to
+        // остальное без изменений
+        if (num > from && num <= to) {
+          const newFieldName = `${arrayName}.${num - 1}.${fieldEndPart}`
+          newSrc[newFieldName] = oldSrc[fieldName]
+        } else if (num === from) {
+          const newFieldName = `${arrayName}.${to}.${fieldEndPart}`
+          newSrc[newFieldName] = oldSrc[fieldName]
+        } else {
+          newSrc[fieldName] = oldSrc[fieldName]
+        }
+      } else {
+        // increment полей от to до from - 1
+        // для поля from поставить значение to
+        // остальные поля без изменений
+        if (num >= to && num < from) {
+          const newFieldName = `${arrayName}.${num + 1}.${fieldEndPart}`
+          newSrc[newFieldName] = oldSrc[fieldName]
+        } else if (num === from) {
+          const newFieldName = `${arrayName}.${to}.${fieldEndPart}`
+          newSrc[newFieldName] = oldSrc[fieldName]
+        } else {
+          newSrc[fieldName] = oldSrc[fieldName]
+        }
       }
     }
   }

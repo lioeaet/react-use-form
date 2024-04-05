@@ -143,20 +143,29 @@ export function useForm({ initValues, validators, submit }) {
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    remove: useCallback((name, i) => {
-      dispatch({
-        type: 'array remove',
-        name,
-        i,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
     insert: useCallback((name, i, value) => {
       dispatch({
         type: 'array insert',
         name,
         i,
         value,
+      })
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+    replace: useCallback((name, from, to) => {
+      dispatch({
+        type: 'array replace',
+        name,
+        from,
+        to,
+      })
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+    remove: useCallback((name, i) => {
+      dispatch({
+        type: 'array remove',
+        name,
+        i,
       })
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
@@ -314,25 +323,40 @@ function updNameWithArrayReplacements(
 ) {
   return replacementsDuringValidation.reduce((nextFieldName, arrayAction) => {
     if (!nextFieldName) return nextFieldName
+    const { num, fieldEndPart } = splitFieldOfArrayName(
+      arrayAction.name,
+      nextFieldName
+    )
 
     switch (arrayAction.type) {
       case 'array remove': {
         const { i } = arrayAction.args
-        const { num, fieldEndPart } = splitFieldOfArrayName(
-          arrayAction.name,
-          nextFieldName
-        )
         if (num === i) return null
         else if (num > i)
           return `${arrayAction.name}.${num - 1}.${fieldEndPart}`
         return nextFieldName
       }
+      case 'array replace': {
+        const { from, to } = arrayAction.args
+        if (num === from) return `${arrayAction.name}.${to}.${fieldEndPart}`
+
+        if (from < to) {
+          // decrement полей от from + 1 до to
+          // остальные поля без изменений
+          if (num > from && num <= to) {
+            return `${arrayAction.name}.${num - 1}.${fieldEndPart}`
+          }
+        } else {
+          // increment полей от to до from - 1
+          // остальные поля без изменений
+          if (num >= to && num < from) {
+            return `${arrayAction.name}.${num + 1}.${fieldEndPart}`
+          }
+        }
+        return nextFieldName
+      }
       case 'array insert': {
         const { i } = arrayAction.args
-        const { num, fieldEndPart } = splitFieldOfArrayName(
-          arrayAction.name,
-          nextFieldName
-        )
         if (num >= i) return `${arrayAction.name}.${num + 1}.${fieldEndPart}`
         return nextFieldName
       }
@@ -386,6 +410,7 @@ export function useSubformsArray(name) {
   return {
     value: getFieldFromInst(name, values),
     remove: (i) => actions.remove(name, i),
+    replace: (from, to) => actions.replace(name, from, to),
     insert: (i, value) => actions.insert(name, i, value),
   }
 }

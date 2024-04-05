@@ -15,12 +15,20 @@ function App() {
           surname: 'doki',
         },
         {
-          name: 'bla',
-          surname: 'bla',
+          name: '1',
+          surname: '1',
         },
         {
-          name: '',
-          surname: '',
+          name: '2',
+          surname: '2',
+        },
+        {
+          name: '3',
+          surname: '3',
+        },
+        {
+          name: '4',
+          surname: '4',
         },
       ],
     },

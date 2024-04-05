@@ -11,13 +11,50 @@ export function SubformsArray({ name }) {
         <Fragment key={i}>
           <FormInput name={`${name}.${i}.name`} />
           <FormInput name={`${name}.${i}.surname`} />
-          <div onClick={() => remove(i)}>remove</div>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              remove(i)
+            }}
+          >
+            remove
+          </button>
         </Fragment>
       ))}
-      <div onClick={() => insert(value.length, { name: '', surname: '' })}>
-        add
+      <div>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            insert(value.length, { name: '', surname: '' })
+          }}
+        >
+          add
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            replace(3, 1)
+          }}
+        >
+          replace 3-1
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            replace(1, 3)
+          }}
+        >
+          replace 1-3
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            insert(0, { name: '', surname: '' })
+          }}
+        >
+          unshift
+        </button>
       </div>
-      <div onClick={() => insert(0, { name: '', surname: '' })}>unshift</div>
     </>
   )
 }
