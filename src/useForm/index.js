@@ -94,12 +94,7 @@ export function useForm({ initValues, validators, submit }) {
         type: 'submit start',
       })
       const errors = await execValidateObject(
-        getFieldsValidateOnSubmit(
-          validators,
-          childFields,
-          arrayFields,
-          stateRef
-        )
+        getFieldsValidateOnSubmit(validators, arrayFields, stateRef)
       )
 
       if (errors.some((err) => err)) {

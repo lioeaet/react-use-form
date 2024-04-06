@@ -96,7 +96,6 @@ export function getFieldsValidateOnBlur(
 // пройтись по всем валидаторам и добавить их для полей, которых нет в values
 export function getFieldsValidateOnSubmit(
   validatorsMap,
-  childFields,
   arrayFields,
   stateRef
 ) {
@@ -283,7 +282,7 @@ function getValidatorName(fieldName, arrayFields) {
 // функция для вложенных форм
 // для трансформации PARENTS: ['array.i.oki'] в argsFields['array.0.oki']
 function replaceIOnNumIfInArray(arrayFields, name, fieldWithNumInArray) {
-  // [...arrayFields].find('array.i.name')
+  // ['array'].find('array.i.name'.startsWith('array'))
   const arrayFieldName = arrayFields.find((arrayFieldName) =>
     name.startsWith(arrayFieldName)
   )
