@@ -371,7 +371,14 @@ function useChildAndArrayFields(validators) {
   iterateDeep(validators, (path, val) => {
     if (val?.[ADVANCED_VALIDATOR]) {
       val.PARENTS?.forEach?.((parentName) => {
-        const childName = path.join('.')
+        let childName = path.join('.')
+
+        if (childName?.startsWith(arrayFields[arrayFields.length - 1])) {
+          // array.name -> array.i.name
+          const pathWithI = [...path]
+          pathWithI.splice(path.length - 1, 0, 'i')
+          childName = pathWithI.join('.')
+        }
 
         if (!childFields[parentName]) childFields[parentName] = [childName]
         else childFields.push(childName)

@@ -29,9 +29,9 @@ export function getFieldsValidateOnChange(
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
       if (arrayFieldName) {
-        // array.name -> array.i.name
+        // array.name -> array.1.name
         fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
-          arrayFieldName.length + 1
+          arrayFieldName.length + 3
         )}`
       }
       if (validationEnabled[fieldName]) {
@@ -72,10 +72,11 @@ export function getFieldsValidateOnBlur(
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
       if (arrayFieldName) {
-        // array.name -> array.i.name
+        // array.name -> array.1.name
         fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
-          arrayFieldName.length + 1
+          arrayFieldName.length + 3
         )}`
+        console.log(fieldName)
       }
       if (validationEnabled[fieldName]) {
         fieldsValidate[fieldName] = getValidateFieldAdvanced(
