@@ -1,6 +1,4 @@
-import { useForm, advanced, array } from './useForm'
-import { FormInput } from './FormInput'
-import { SubformsArray } from './SubformsArray'
+import { useForm, useField, useSubformsArray, advanced, array } from './useForm'
 
 function App() {
   const { Form, actions } = useForm({
@@ -90,4 +88,78 @@ function delay(fn, ms = 200) {
         r()
       }, ms)
     }).then(() => fn(...args))
+}
+
+function FormInput({ name }) {
+  const { value, error, loading, onChange, onBlur } = useField(name)
+  return (
+    <div>
+      <div style={{ display: 'flex' }}>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+        />
+        {loading && 'loading...'}
+      </div>
+      <div>{error}</div>
+    </div>
+  )
+}
+
+function SubformsArray({ name }) {
+  const { value, insert, replace, remove } = useSubformsArray(name)
+
+  return (
+    <>
+      {value.map((obj, i) => (
+        <div key={i}>
+          <FormInput name={`${name}.${i}.name`} />
+          <FormInput name={`${name}.${i}.surname`} />
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              remove(i)
+            }}
+          >
+            remove
+          </button>
+        </div>
+      ))}
+      <div>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            insert(value.length, { name: '', surname: '' })
+          }}
+        >
+          add
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            replace(3, 1)
+          }}
+        >
+          replace 3-1
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            replace(1, 3)
+          }}
+        >
+          replace 1-3
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            insert(0, { name: '', surname: '' })
+          }}
+        >
+          unshift
+        </button>
+      </div>
+    </>
+  )
 }

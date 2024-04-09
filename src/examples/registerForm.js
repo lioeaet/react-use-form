@@ -1,8 +1,7 @@
-import { useForm, advanced /* , array */ } from './useForm'
-import { Input } from './Input'
+import { useForm, useField, useSubformsArray, advanced, array } from './useForm'
 
 function App() {
-  const { Form } = useForm({
+  const { Form, actions } = useForm({
     initValues: {
       password: '',
       passwordRepeat: {
@@ -10,8 +9,24 @@ function App() {
       },
       array: [
         {
-          name: 'oki',
+          name: 'doki',
           surname: 'doki',
+        },
+        {
+          name: '1',
+          surname: '1',
+        },
+        {
+          name: '2',
+          surname: '2',
+        },
+        {
+          name: '3',
+          surname: '3',
+        },
+        {
+          name: '4',
+          surname: '4',
         },
       ],
     },
@@ -24,7 +39,7 @@ function App() {
       ],
       passwordRepeat: {
         deep: advanced({
-          DEFAULT: [
+          CHANGE: [
             delay((val, password) => {
               return val !== password && 'should be equal with password'
             }),
@@ -32,7 +47,7 @@ function App() {
               return !value && 'should not be empty'
             },
           ],
-          VALIDATE: [
+          BLUR: [
             (value, password) => {
               return new Promise((r) => r()).then(
                 () => value === password && 'should not be equal with password'
@@ -42,14 +57,24 @@ function App() {
           PARENTS: ['password'],
         }),
       },
+      array: array({
+        name: delay((val) => !val && 'should not be empty', 1000),
+        surname: advanced({
+          CHANGE: (val, name) =>
+            val === name && 'should not be equal with name',
+          PARENTS: ['array.i.name'],
+        }),
+      }),
     },
     submit: console.log,
   })
 
   return (
-    <Form>
-      <Input name="password" />
-      <Input name="passwordRepeat.deep" />
+    <Form onSubmit={actions.submit}>
+      <FormInput name="password" />
+      <FormInput name="passwordRepeat.deep" />
+      <SubformsArray name="array" />
+      <button type="submit">submit</button>
     </Form>
   )
 }
@@ -63,4 +88,78 @@ function delay(fn, ms = 200) {
         r()
       }, ms)
     }).then(() => fn(...args))
+}
+
+function FormInput({ name }) {
+  const { value, error, loading, onChange, onBlur } = useField(name)
+  return (
+    <div>
+      <div style={{ display: 'flex' }}>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+        />
+        {loading && 'loading...'}
+      </div>
+      <div>{error}</div>
+    </div>
+  )
+}
+
+function SubformsArray({ name }) {
+  const { value, insert, replace, remove } = useSubformsArray(name)
+
+  return (
+    <>
+      {value.map((obj, i) => (
+        <div key={i}>
+          <FormInput name={`${name}.${i}.name`} />
+          <FormInput name={`${name}.${i}.surname`} />
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              remove(i)
+            }}
+          >
+            remove
+          </button>
+        </div>
+      ))}
+      <div>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            insert(value.length, { name: '', surname: '' })
+          }}
+        >
+          add
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            replace(3, 1)
+          }}
+        >
+          replace 3-1
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            replace(1, 3)
+          }}
+        >
+          replace 1-3
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            insert(0, { name: '', surname: '' })
+          }}
+        >
+          unshift
+        </button>
+      </div>
+    </>
+  )
 }
