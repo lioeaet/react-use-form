@@ -365,9 +365,6 @@ function useChildAndArrayFields(validators) {
   const childFields = {}
   const arrayFields = []
 
-  // массивы в childFields создаются как array.child
-  // вероятно, лучше переписать как везде array.i.child
-
   iterateDeep(validators, (path, val) => {
     if (val?.[ADVANCED_VALIDATOR]) {
       val.PARENTS?.forEach?.((parentName) => {

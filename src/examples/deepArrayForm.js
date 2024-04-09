@@ -10,7 +10,7 @@ function App() {
         },
       },
     ],
-    validators: array({
+    validators: {
       password: [
         delay((val) => !val && 'should not be empty'),
         delay((val) => val === '1' && 'should not be 1'),
@@ -37,7 +37,7 @@ function App() {
           PARENTS: ['i.password'],
         }),
       },
-    }),
+    },
     submit: console.log,
   })
 
