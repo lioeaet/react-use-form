@@ -374,9 +374,10 @@ function useChildAndArrayFields(validators) {
         let childName = path.join('.')
 
         if (childName?.startsWith(arrayFields[arrayFields.length - 1])) {
+          const arrayPath = arrayFields[arrayFields.length - 1].split('.')
           // array.name -> array.i.name
           const pathWithI = [...path]
-          pathWithI.splice(path.length - 1, 0, 'i')
+          pathWithI.splice(arrayPath.length, 0, 'i')
           childName = pathWithI.join('.')
         }
 
