@@ -29,7 +29,7 @@ export function getFieldsValidateOnChange(
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
       if (arrayFieldName) {
-        // array.name -> array.1.name
+        // array.i.name -> array.1.name
         fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
           arrayFieldName.length + 3
         )}`
@@ -58,11 +58,10 @@ export function getFieldsValidateOnBlur(
   const { validationEnabled } = stateRef.current
   const fieldsValidate = {}
 
-  fieldsValidate[name] = getValidateFieldAdvanced(
+  fieldsValidate[name] = getValidateFieldOnBlur(
     name,
     validatorsMap,
-    arrayFields,
-    'BLUR'
+    arrayFields
   )
 
   // array.0.name -> array.i.name, 0, array
@@ -72,18 +71,16 @@ export function getFieldsValidateOnBlur(
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
       if (arrayFieldName) {
-        // array.name -> array.1.name
+        // array.i.name -> array.1.name
         fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
           arrayFieldName.length + 3
         )}`
-        console.log(fieldName)
       }
       if (validationEnabled[fieldName]) {
-        fieldsValidate[fieldName] = getValidateFieldAdvanced(
+        fieldsValidate[fieldName] = getValidateFieldOnBlur(
           fieldName,
           validatorsMap,
-          arrayFields,
-          'BLUR'
+          arrayFields
         )
       }
     }
@@ -245,17 +242,17 @@ function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
     }
 }
 
-function getValidateFieldAdvanced(name, validatorsMap, arrayFields, type) {
+function getValidateFieldOnBlur(name, validatorsMap, arrayFields) {
   // array.1.name -> array.name
   const validatorName = getValidatorName(name, arrayFields)
   const validator = getFieldFromInst(validatorName, validatorsMap)
   if (validator?.[ADVANCED_VALIDATOR])
     return {
       validators:
-        typeof validator[type] === 'function'
-          ? [validator[type]]
-          : Array.isArray(validator[type])
-          ? validator[type]
+        typeof validator.BLUR === 'function'
+          ? [validator.BLUR]
+          : Array.isArray(validator.BLUR)
+          ? validator.BLUR
           : [],
       argsFields: [
         name,
