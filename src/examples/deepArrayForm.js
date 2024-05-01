@@ -2,48 +2,39 @@ import { useForm, advanced, array, useField, useSubformsArray } from './useForm'
 
 function App() {
   const { Form, actions } = useForm({
-    initValues: [
-      {
-        password: '',
-        passwordRepeat: {
-          deep: '',
+    initValues: {
+      deep: [
+        {
+          array: [
+            {
+              inside: '',
+              deeply: '',
+            },
+          ],
+          name: '',
         },
-      },
-    ],
-    validators: {
-      password: [
-        delay((val) => !val && 'should not be empty'),
-        delay((val) => val === '1' && 'should not be 1'),
-        delay((val) => val === '12' && 'should not be 12', 1000),
-        delay((val) => val === '123' && 'should not be 123'),
       ],
-      passwordRepeat: {
-        deep: advanced({
-          CHANGE: [
-            delay((val, password) => {
-              return val !== password && 'should be equal with password'
-            }),
-            (value) => {
-              return !value && 'should not be empty'
-            },
-          ],
-          BLUR: [
-            (value, password) => {
-              return new Promise((r) => r()).then(
-                () => value === password && 'should not be equal with password'
-              )
-            },
-          ],
-          PARENTS: ['i.password'],
+    },
+    validators: {
+      deep: array({
+        array: array({
+          inside: (val) => !val && 'required',
+          deeply: advanced({
+            CHANGE: [
+              (val) => !val && 'required',
+              (val, inside) => val !== inside && 'should be equal',
+            ],
+            PARENTS: ['deep.i.array.i.inside'],
+          }),
         }),
-      },
+      }),
     },
     submit: console.log,
   })
 
   return (
     <Form onSubmit={actions.submit}>
-      <SubformsForm />
+      <FirstSubformsForm name="deep" />
       <button type="submit">submit</button>
     </Form>
   )
@@ -51,22 +42,14 @@ function App() {
 
 export default App
 
-function delay(fn, ms = 200) {
-  return (...args) =>
-    new Promise((r) => {
-      setTimeout(() => {
-        r()
-      }, ms)
-    }).then(() => fn(...args))
-}
-
-function FormInput({ name }) {
+function FormInput({ name, placeholder }) {
   const { value, error, loading, onChange, onBlur } = useField(name)
   return (
     <div>
       <div style={{ display: 'flex' }}>
         <input
           value={value}
+          placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
         />
@@ -77,15 +60,15 @@ function FormInput({ name }) {
   )
 }
 
-function SubformsForm() {
-  const { value, insert, replace, remove } = useSubformsArray('')
+function FirstSubformsForm({ name }) {
+  const { value, insert, replace, remove } = useSubformsArray(name)
 
   return (
     <>
       {value.map((obj, i) => (
         <div key={i}>
-          <FormInput name={`${i}.password`} />
-          <FormInput name={`${i}.passwordRepeat.deep`} />
+          <SecondSubformsForm name={`${name}.${i}.array`} />
+          <FormInput name={`${name}.${i}.name`} />
           <button
             onClick={(e) => {
               e.preventDefault()
@@ -132,4 +115,21 @@ function SubformsForm() {
       </div>
     </>
   )
+}
+
+function SecondSubformsForm({ name }) {
+  const { value, insert, replace, remove } = useSubformsArray(name)
+
+  return value.map((obj, i) => (
+    <div>
+      <FormInput
+        name={`${name}.${i}.inside`}
+        placeholder={`${name}.${i}.inside`}
+      />
+      <FormInput
+        name={`${name}.${i}.deeply`}
+        placeholder={`${name}.${i}.deeply`}
+      />
+    </div>
+  ))
 }
