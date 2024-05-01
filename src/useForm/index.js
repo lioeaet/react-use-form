@@ -55,7 +55,6 @@ export function useForm({ initValues, validators, submit }) {
       return execValidateObject(fieldsValidateOnChange)
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
-    spliceArray: useCallback(() => {}, []),
     blur: useCallback((name) => {
       dispatch({
         type: 'enable validation',
