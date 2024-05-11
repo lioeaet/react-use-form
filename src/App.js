@@ -1,69 +1,40 @@
-import { useForm, useField, useSubformsArray, advanced, array } from './useForm'
+import { useForm, advanced, array, useField, useSubformsArray } from './useForm'
 
 function App() {
   const { Form, actions } = useForm({
     initValues: {
-      password: '',
-      passwordRepeat: {
-        deep: '',
-      },
-      array: [
+      deep: [
         {
-          name: 'doki',
-          surname: 'doki',
-        },
-        {
-          name: '1',
-          surname: '1',
-        },
-        {
-          name: '2',
-          surname: '2',
-        },
-        {
-          name: '3',
-          surname: '3',
-        },
-        {
-          name: '4',
-          surname: '4',
+          very: {
+            array: [
+              {
+                inside: {
+                  deeply: '',
+                },
+                shallow: '',
+              },
+            ],
+            name: '',
+          },
         },
       ],
     },
     validators: {
-      password: [
-        delay((val) => !val && 'should not be empty'),
-        delay((val) => val === '1' && 'should not be 1'),
-        delay((val) => val === '12' && 'should not be 12', 1000),
-        delay((val) => val === '123' && 'should not be 123'),
-      ],
-      passwordRepeat: {
-        deep: advanced({
-          CHANGE: [
-            delay((val, password) => {
-              return val !== password && 'should be equal with password'
+      deep: array({
+        very: {
+          array: array({
+            inside: {
+              deeply: (val) => !val && 'required',
+            },
+            shallow: advanced({
+              CHANGE: [
+                (val) => !val && 'required',
+                (val, inside) => val !== inside && 'should be equal',
+              ],
+              PARENTS: ['deep.i.very.array.i.inside.deeply'],
             }),
-            (value) => {
-              return !value && 'should not be empty'
-            },
-          ],
-          BLUR: [
-            (value, password) => {
-              return new Promise((r) => r()).then(
-                () => value === password && 'should not be equal with password'
-              )
-            },
-          ],
-          PARENTS: ['password'],
-        }),
-      },
-      array: array({
-        name: delay((val) => !val && 'should not be empty', 1000),
-        surname: advanced({
-          CHANGE: (val, name) =>
-            val === name && 'should not be equal with name',
-          PARENTS: ['array.i.name'],
-        }),
+          }),
+        },
       }),
     },
     submit: console.log,
@@ -71,9 +42,7 @@ function App() {
 
   return (
     <Form onSubmit={actions.submit}>
-      <FormInput name="password" />
-      <FormInput name="passwordRepeat.deep" />
-      <SubformsArray name="array" />
+      <FirstSubformsForm name="deep" />
       <button type="submit">submit</button>
     </Form>
   )
@@ -81,22 +50,14 @@ function App() {
 
 export default App
 
-function delay(fn, ms = 200) {
-  return (...args) =>
-    new Promise((r) => {
-      setTimeout(() => {
-        r()
-      }, ms)
-    }).then(() => fn(...args))
-}
-
-function FormInput({ name }) {
+function FormInput({ name, placeholder }) {
   const { value, error, loading, onChange, onBlur } = useField(name)
   return (
     <div>
       <div style={{ display: 'flex' }}>
         <input
           value={value}
+          placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
         />
@@ -107,15 +68,15 @@ function FormInput({ name }) {
   )
 }
 
-function SubformsArray({ name }) {
+function FirstSubformsForm({ name }) {
   const { value, insert, replace, remove } = useSubformsArray(name)
 
   return (
     <>
       {value.map((obj, i) => (
         <div key={i}>
+          <SecondSubformsForm name={`${name}.${i}.very.array`} />
           <FormInput name={`${name}.${i}.name`} />
-          <FormInput name={`${name}.${i}.surname`} />
           <button
             onClick={(e) => {
               e.preventDefault()
@@ -162,4 +123,21 @@ function SubformsArray({ name }) {
       </div>
     </>
   )
+}
+
+function SecondSubformsForm({ name }) {
+  const { value, insert, replace, remove } = useSubformsArray(name)
+
+  return value.map((obj, i) => (
+    <div key={i}>
+      <FormInput
+        name={`${name}.${i}.inside.deeply`}
+        placeholder={`${name}.${i}.inside.deeply`}
+      />
+      <FormInput
+        name={`${name}.${i}.shallow`}
+        placeholder={`${name}.${i}.shallow`}
+      />
+    </div>
+  ))
 }

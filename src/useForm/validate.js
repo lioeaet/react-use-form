@@ -3,10 +3,13 @@ import {
   getFieldFromValidatorsMap,
   splitFieldOfArrayName,
   isPlainObj,
+  getLastArrayOfFieldName,
+  getFieldNameWithoutI,
 } from './util'
 
 export const ADVANCED_VALIDATOR = Symbol('advanced validator')
 export const ARRAY_FIELD = Symbol('array field')
+export const VALIDATOR_OBJ = Symbol('validator obj')
 
 export function getFieldsValidateOnChange(
   name,
@@ -27,17 +30,15 @@ export function getFieldsValidateOnChange(
     if (validators) fieldsValidate[name] = validators
   }
 
-  // array.0.name -> array.i.name, 0, array
-  const { abstractFieldName, idxInArray, arrayFieldName } =
-    getAbstractNameWithArrayVars(name, arrayFields)
+  // array.0.name.oki.0.doki -> ['array', 'name.oki', 'doki'], [0, 0]
+  const { indexes, paths } = splitOnPathsWithIndexes(name, arrayFields)
+  const abstractFieldName = paths.join('.i.')
 
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
-      if (arrayFieldName) {
+      if (indexes.length) {
         // array.i.name -> array.1.name
-        fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
-          arrayFieldName.length + 3
-        )}`
+        fieldName = setIndexesToAbstractFieldName(fieldName, indexes)
       }
       if (validationEnabled[fieldName]) {
         const validators = getFieldValidatorsOnChange(
@@ -69,17 +70,15 @@ export function getFieldsValidateOnBlur(
     arrayFields
   )
 
-  // array.0.name -> array.i.name, 0, array
-  const { abstractFieldName, idxInArray, arrayFieldName } =
-    getAbstractNameWithArrayVars(name, arrayFields)
+  // array.0.name.oki.0.doki -> ['array', 'name.oki', 'doki'], [0, 0]
+  const { indexes, paths } = splitOnPathsWithIndexes(name, arrayFields)
+  const abstractFieldName = paths.join('.i.')
 
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
-      if (arrayFieldName) {
+      if (indexes.length) {
         // array.i.name -> array.1.name
-        fieldName = `${arrayFieldName}.${idxInArray}.${fieldName.slice(
-          arrayFieldName.length + 3
-        )}`
+        fieldName = setIndexesToAbstractFieldName(fieldName, indexes)
       }
       if (validationEnabled[fieldName]) {
         fieldsValidate[fieldName] = getValidateFieldOnBlur(
@@ -184,11 +183,11 @@ function getFieldValidateOnSubmit(name, val, arrayFields) {
 function iterateValidationMap(value, cb, path = []) {
   if (isPlainObj(value)) {
     if (value[ADVANCED_VALIDATOR]) {
-      cb(path, value[validatorObjSymbol])
+      cb(path, value[VALIDATOR_OBJ])
     } else {
       for (let key in value) {
         if (value[ARRAY_FIELD]) {
-          cb(path, value[validatorObjSymbol])
+          cb(path, value[VALIDATOR_OBJ])
         } else {
           iterateValidationMap(value[key], cb, [...path, key])
         }
@@ -199,86 +198,111 @@ function iterateValidationMap(value, cb, path = []) {
   }
 }
 
-// array.0.name -> array.i.name, 0, array
-function getAbstractNameWithArrayVars(name, arrayFields) {
-  let abstractFieldName = name
-  let idxInArray
-  const arrayFieldName = arrayFields.find((arrayFieldName) =>
-    name.startsWith(arrayFieldName)
-  )
-  if (arrayFieldName) {
-    const { num, fieldEndPart } = splitFieldOfArrayName(arrayFieldName, name)
-    abstractFieldName = `${arrayFieldName}.i.${fieldEndPart}`
-    idxInArray = num
+// array.0.name.one.0.oki => array.i.name.one.i.oki, [0, 0], ['array', 'name.one', 'oki']
+function splitOnPathsWithIndexes(name, arrayFields) {
+  const fieldPath = name.split('.')
+  const lastArrayOfFieldName = getLastArrayOfFieldName(name, arrayFields)
+  const arrayPath = lastArrayOfFieldName.split('.')
+
+  const indexes = []
+  const paths = []
+
+  let currentPathName = ''
+  for (let i = 0; i < fieldPath.length; i++) {
+    if (arrayPath[i] === 'i' || i === arrayPath.length) {
+      paths.push(currentPathName)
+      indexes.push(+fieldPath[i])
+      currentPathName = ''
+    } else {
+      if (currentPathName) currentPathName += `.${fieldPath[i]}`
+      else currentPathName = fieldPath[i]
+    }
   }
-  return { abstractFieldName, idxInArray, arrayFieldName }
+  paths.push(currentPathName)
+  return { indexes, paths }
+}
+
+function setIndexesToAbstractFieldName(name, indexes) {
+  let pathWithIndexes = []
+  let currentIndex = 0
+  const path = name.split('.')
+  for (let i = 0; i < path.length; i++) {
+    if (path[i] === 'i') {
+      pathWithIndexes.push(indexes[currentIndex])
+      currentIndex++
+    } else {
+      pathWithIndexes.push(path[i])
+    }
+  }
+  return pathWithIndexes.join('.')
 }
 
 function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
-  // array.1.name -> array.name
+  // array.1.name.1.oki -> array.name.oki
   const validatorName = getValidatorName(name, arrayFields)
   const validator = getFieldFromValidatorsMap(validatorName, validatorsMap)
 
-  // array.i.name -> array.1.name
-  const parentsWithNumInArrays =
-    validator.PARENTS?.map((parentName) => {
-      return replaceIOnNumIfInArray(arrayFields, parentName, name)
-    }) || []
-
   if (validator?.[ADVANCED_VALIDATOR]) {
-    if (typeof validator.CHANGE === 'function')
+    const validatorObj = validator[VALIDATOR_OBJ]
+    // array.i.name -> array.1.name
+    const parentsWithNumInArrays =
+      validatorObj.PARENTS?.map((parentName) => {
+        return replaceIOnNumIfInArray(arrayFields, parentName, name)
+      }) || []
+
+    if (typeof validatorObj.CHANGE === 'function')
       return {
-        validators: [validator.CHANGE],
+        validators: [validatorObj.CHANGE],
         argsFields: [name, ...parentsWithNumInArrays],
       }
     return {
-      validators: validator.CHANGE,
+      validators: validatorObj.CHANGE,
       argsFields: [name, ...parentsWithNumInArrays],
     }
   } else if (Array.isArray(validator)) {
     return {
       validators: validator,
-      argsFields: [name, ...parentsWithNumInArrays],
+      argsFields: [name],
     }
   } else if (typeof validator === 'function')
     return {
       validators: [validator],
-      argsFields: [name, ...parentsWithNumInArrays],
+      argsFields: [name],
     }
 }
 
 function getValidateFieldOnBlur(name, validatorsMap, arrayFields) {
-  // array.1.name -> array.name
+  // array.1.name.1.oki -> array.name.oki
   const validatorName = getValidatorName(name, arrayFields)
   const validator = getFieldFromValidatorsMap(validatorName, validatorsMap)
-  if (validator?.[ADVANCED_VALIDATOR])
+  if (validator?.[ADVANCED_VALIDATOR]) {
+    const validatorObj = validator[VALIDATOR_OBJ]
+
     return {
       validators:
-        typeof validator.BLUR === 'function'
-          ? [validator.BLUR]
-          : Array.isArray(validator.BLUR)
-          ? validator.BLUR
+        typeof validatorObj.BLUR === 'function'
+          ? [validatorObj.BLUR]
+          : Array.isArray(validatorObj.BLUR)
+          ? validatorObj.BLUR
           : [],
       argsFields: [
         name,
-        ...validator.PARENTS?.map((parentName) => {
+        ...validatorObj.PARENTS?.map((parentName) => {
           return replaceIOnNumIfInArray(arrayFields, parentName, name)
         }),
       ],
     }
+  }
 
   return { validators: [], argsFields: [name] }
 }
 
 function getValidatorName(fieldName, arrayFields) {
-  // array.1.name -> array
-  const arrayFieldName = arrayFields.find((arrayFieldName) =>
-    fieldName.startsWith(arrayFieldName)
-  )
-  if (arrayFieldName) {
-    const { fieldEndPart } = splitFieldOfArrayName(arrayFieldName, fieldName)
-    // array.name
-    return `${arrayFieldName}.${fieldEndPart}`
+  // array.1.name.1.oki -> array.i.name
+  const lastArrayOfFieldName = getLastArrayOfFieldName(fieldName, arrayFields)
+  if (lastArrayOfFieldName) {
+    // array.1.name.1.oki + array.name -> array.name.oki
+    return getFieldNameWithoutI(fieldName, lastArrayOfFieldName)
   } else return fieldName
 }
 
@@ -312,14 +336,12 @@ export function joinValidators(...validators) {
   return result
 }
 
-export const validatorObjSymbol = Symbol('validator obj')
-
 export const advanced = (validatorObj) => ({
-  [validatorObjSymbol]: validatorObj,
+  [VALIDATOR_OBJ]: validatorObj,
   [ADVANCED_VALIDATOR]: true,
 })
 
 export const array = (validatorObj) => ({
-  [validatorObjSymbol]: validatorObj,
+  [VALIDATOR_OBJ]: validatorObj,
   [ARRAY_FIELD]: true,
 })

@@ -1,4 +1,4 @@
-import { validatorObjSymbol } from './validate'
+import { VALIDATOR_OBJ } from './validate'
 
 export function iterateDeep(value, cb, path = []) {
   cb(path, value)
@@ -36,8 +36,8 @@ export function getFieldFromInst(name, inst) {
 
 export function getFieldFromValidatorsMap(name, validatorsMap) {
   return name.split('.').reduce((current, pathName) => {
-    if (current?.[validatorObjSymbol]) {
-      current = current?.[validatorObjSymbol]
+    if (current?.[VALIDATOR_OBJ]) {
+      current = current?.[VALIDATOR_OBJ]
     }
     return current?.[pathName]
   }, validatorsMap)
@@ -60,4 +60,32 @@ export function splitFieldOfArrayName(arrayFieldName, fieldName) {
     num: Number(keyAfterArray.slice(0, keyAfterArray.indexOf('.'))),
     fieldEndPart: keyAfterArray.slice(keyAfterArray.indexOf('.') + 1),
   }
+}
+
+export function getLastArrayOfFieldName(name, arrayFields) {
+  const path = name.split('.')
+  const targetArrayFields = arrayFields.filter((arrayField) => {
+    const arrayFieldPath = arrayField.split('.')
+    for (let i = 0; i < arrayFieldPath.length; i++) {
+      if (arrayFieldPath[i] !== path[i]) {
+        if (arrayFieldPath[i] === 'i' && typeof Number(path[i]) === 'number')
+          continue
+        else return false
+      }
+    }
+    return true
+  })
+  return targetArrayFields[targetArrayFields.length - 1]
+}
+
+export function getFieldNameWithoutI(name, lastArrayOfFieldName) {
+  const path = name.split('.')
+  const arrayFieldPath = lastArrayOfFieldName.split('.')
+
+  const pathWithoutI = []
+  for (let i = 0; i < path.length; i++) {
+    if (arrayFieldPath[i] === 'i' || i === arrayFieldPath.length) continue
+    else pathWithoutI.push(path[i])
+  }
+  return pathWithoutI.join('.')
 }

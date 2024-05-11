@@ -5,28 +5,36 @@ function App() {
     initValues: {
       deep: [
         {
-          array: [
-            {
-              inside: '',
-              deeply: '',
-            },
-          ],
-          name: '',
+          very: {
+            array: [
+              {
+                inside: {
+                  deeply: '',
+                },
+                shallow: '',
+              },
+            ],
+            name: '',
+          },
         },
       ],
     },
     validators: {
       deep: array({
-        array: array({
-          inside: (val) => !val && 'required',
-          deeply: advanced({
-            CHANGE: [
-              (val) => !val && 'required',
-              (val, inside) => val !== inside && 'should be equal',
-            ],
-            PARENTS: ['deep.i.array.i.inside'],
+        very: {
+          array: array({
+            inside: {
+              deeply: (val) => !val && 'required',
+            },
+            shallow: advanced({
+              CHANGE: [
+                (val) => !val && 'required',
+                (val, inside) => val !== inside && 'should be equal',
+              ],
+              PARENTS: ['deep.i.very.array.i.inside.deeply'],
+            }),
           }),
-        }),
+        },
       }),
     },
     submit: console.log,
@@ -67,7 +75,7 @@ function FirstSubformsForm({ name }) {
     <>
       {value.map((obj, i) => (
         <div key={i}>
-          <SecondSubformsForm name={`${name}.${i}.array`} />
+          <SecondSubformsForm name={`${name}.${i}.very.array`} />
           <FormInput name={`${name}.${i}.name`} />
           <button
             onClick={(e) => {
@@ -121,14 +129,14 @@ function SecondSubformsForm({ name }) {
   const { value, insert, replace, remove } = useSubformsArray(name)
 
   return value.map((obj, i) => (
-    <div>
+    <div key={i}>
       <FormInput
-        name={`${name}.${i}.inside`}
-        placeholder={`${name}.${i}.inside`}
+        name={`${name}.${i}.inside.deeply`}
+        placeholder={`${name}.${i}.inside.deeply`}
       />
       <FormInput
-        name={`${name}.${i}.deeply`}
-        placeholder={`${name}.${i}.deeply`}
+        name={`${name}.${i}.shallow`}
+        placeholder={`${name}.${i}.shallow`}
       />
     </div>
   ))

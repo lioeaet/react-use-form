@@ -7,7 +7,7 @@ import {
   getFieldsValidateOnBlur,
   getFieldsValidateOnSubmit,
   joinValidators,
-  validatorObjSymbol,
+  VALIDATOR_OBJ,
 } from './validate'
 import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
 import { getReducer, getInitState } from './reducer'
@@ -367,7 +367,10 @@ function useArrayFields(validators) {
 
   iterateDeep(validators, (path, val) => {
     if (val?.[ARRAY_FIELD]) {
-      arrayFields.push(path.join('.'))
+      const arrayFieldName = path
+        .map((x) => (x === VALIDATOR_OBJ ? 'i' : x))
+        .join('.')
+      arrayFields.push(arrayFieldName)
     }
   })
 
@@ -377,21 +380,15 @@ function useArrayFields(validators) {
 function useChildFields(validators, arrayFields) {
   const childFields = {}
 
-  iterateDeep(validators, (path, val) => {
+  iterateDeep(validators, (pathWithValidatorObjSymbol, val) => {
     if (val?.[ADVANCED_VALIDATOR]) {
-      const realVal = val[validatorObjSymbol]
-      const realPath = path.filter((x) => x !== validatorObjSymbol)
+      const realVal = val[VALIDATOR_OBJ]
+      const realPath = pathWithValidatorObjSymbol.map((key) =>
+        key === VALIDATOR_OBJ ? 'i' : key
+      )
 
       realVal.PARENTS?.forEach?.((parentName) => {
         let childName = realPath.join('.')
-
-        if (childName?.startsWith(arrayFields[arrayFields.length - 1])) {
-          const arrayPath = arrayFields[arrayFields.length - 1].split('.')
-          // array.name -> array.i.name
-          const pathWithI = [...realPath]
-          pathWithI.splice(arrayPath.length, 0, 'i')
-          childName = pathWithI.join('.')
-        }
 
         if (!childFields[parentName]) childFields[parentName] = [childName]
         else childFields.push(childName)
