@@ -1,4 +1,9 @@
-import { getFieldFromInst, splitFieldOfArrayName, isPlainObj } from './util'
+import {
+  getFieldFromInst,
+  getFieldFromValidatorsMap,
+  splitFieldOfArrayName,
+  isPlainObj,
+} from './util'
 
 export const ADVANCED_VALIDATOR = Symbol('advanced validator')
 export const ARRAY_FIELD = Symbol('array field')
@@ -179,11 +184,11 @@ function getFieldValidateOnSubmit(name, val, arrayFields) {
 function iterateValidationMap(value, cb, path = []) {
   if (isPlainObj(value)) {
     if (value[ADVANCED_VALIDATOR]) {
-      cb(path, value)
+      cb(path, value[validatorObjSymbol])
     } else {
       for (let key in value) {
         if (value[ARRAY_FIELD]) {
-          cb([...path], value)
+          cb(path, value[validatorObjSymbol])
         } else {
           iterateValidationMap(value[key], cb, [...path, key])
         }
@@ -212,7 +217,7 @@ function getAbstractNameWithArrayVars(name, arrayFields) {
 function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
   // array.1.name -> array.name
   const validatorName = getValidatorName(name, arrayFields)
-  const validator = getFieldFromInst(validatorName, validatorsMap)
+  const validator = getFieldFromValidatorsMap(validatorName, validatorsMap)
 
   // array.i.name -> array.1.name
   const parentsWithNumInArrays =
@@ -245,7 +250,7 @@ function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
 function getValidateFieldOnBlur(name, validatorsMap, arrayFields) {
   // array.1.name -> array.name
   const validatorName = getValidatorName(name, arrayFields)
-  const validator = getFieldFromInst(validatorName, validatorsMap)
+  const validator = getFieldFromValidatorsMap(validatorName, validatorsMap)
   if (validator?.[ADVANCED_VALIDATOR])
     return {
       validators:
@@ -307,12 +312,14 @@ export function joinValidators(...validators) {
   return result
 }
 
+export const validatorObjSymbol = Symbol('validator obj')
+
 export const advanced = (validatorObj) => ({
-  ...validatorObj,
+  [validatorObjSymbol]: validatorObj,
   [ADVANCED_VALIDATOR]: true,
 })
 
 export const array = (validatorObj) => ({
-  ...validatorObj,
+  [validatorObjSymbol]: validatorObj,
   [ARRAY_FIELD]: true,
 })

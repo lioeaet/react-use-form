@@ -7,12 +7,13 @@ import {
   getFieldsValidateOnBlur,
   getFieldsValidateOnSubmit,
   joinValidators,
+  validatorObjSymbol,
 } from './validate'
 import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
 import { getReducer, getInitState } from './reducer'
 export { advanced, array } from './validate'
 
-export function useForm({ initValues, validators, submit }) {
+export function useForm({ initValues, validators: validatorsMap, submit }) {
   // [{ arrFieldName, type, args }]
   const replacementsDuringValidationRef = useRef([])
 
@@ -22,7 +23,8 @@ export function useForm({ initValues, validators, submit }) {
   // для отмены валидации уже валидированных значений
   const lastValidatedValuesRef = useRef({})
 
-  const { childFields, arrayFields } = useChildAndArrayFields(validators)
+  const arrayFields = useArrayFields(validatorsMap)
+  const childFields = useChildFields(validatorsMap, arrayFields)
 
   const [state, dispatch, stateRef] = useReducerWithRef(
     getReducer(
@@ -47,7 +49,7 @@ export function useForm({ initValues, validators, submit }) {
       // 2. Зависимые поля по default, если у них validationEnabled
       const fieldsValidateOnChange = getFieldsValidateOnChange(
         name,
-        validators,
+        validatorsMap,
         childFields,
         stateRef,
         arrayFields
@@ -63,7 +65,7 @@ export function useForm({ initValues, validators, submit }) {
 
       const fieldsValidateOnChange = getFieldsValidateOnChange(
         name,
-        validators,
+        validatorsMap,
         childFields,
         stateRef,
         arrayFields
@@ -71,7 +73,7 @@ export function useForm({ initValues, validators, submit }) {
 
       const fieldsValidateOnValidate = getFieldsValidateOnBlur(
         name,
-        validators,
+        validatorsMap,
         childFields,
         arrayFields,
         stateRef
@@ -83,7 +85,7 @@ export function useForm({ initValues, validators, submit }) {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     validate: useCallback((name) => {
-      // const validateField = getValidateField(name, validators)
+      // const validateField = getValidateField(name, validatorsMap)
       // validateField()
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
@@ -93,7 +95,7 @@ export function useForm({ initValues, validators, submit }) {
         type: 'submit start',
       })
       const errors = await execValidateObject(
-        getFieldsValidateOnSubmit(validators, arrayFields, stateRef)
+        getFieldsValidateOnSubmit(validatorsMap, arrayFields, stateRef)
       )
 
       if (errors.some((err) => err)) {
@@ -360,19 +362,33 @@ function updNameWithArrayReplacements(
   }, fieldName)
 }
 
-function useChildAndArrayFields(validators) {
-  const childFields = {}
+function useArrayFields(validators) {
   const arrayFields = []
 
   iterateDeep(validators, (path, val) => {
+    if (val?.[ARRAY_FIELD]) {
+      arrayFields.push(path.join('.'))
+    }
+  })
+
+  return arrayFields
+}
+
+function useChildFields(validators, arrayFields) {
+  const childFields = {}
+
+  iterateDeep(validators, (path, val) => {
     if (val?.[ADVANCED_VALIDATOR]) {
-      val.PARENTS?.forEach?.((parentName) => {
-        let childName = path.join('.')
+      const realVal = val[validatorObjSymbol]
+      const realPath = path.filter((x) => x !== validatorObjSymbol)
+
+      realVal.PARENTS?.forEach?.((parentName) => {
+        let childName = realPath.join('.')
 
         if (childName?.startsWith(arrayFields[arrayFields.length - 1])) {
           const arrayPath = arrayFields[arrayFields.length - 1].split('.')
           // array.name -> array.i.name
-          const pathWithI = [...path]
+          const pathWithI = [...realPath]
           pathWithI.splice(arrayPath.length, 0, 'i')
           childName = pathWithI.join('.')
         }
@@ -380,12 +396,10 @@ function useChildAndArrayFields(validators) {
         if (!childFields[parentName]) childFields[parentName] = [childName]
         else childFields.push(childName)
       })
-    } else if (val?.[ARRAY_FIELD]) {
-      arrayFields.push(path.join('.'))
     }
   })
 
-  return { childFields, arrayFields }
+  return childFields
 }
 
 export function useField(name) {

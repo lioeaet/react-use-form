@@ -1,3 +1,5 @@
+import { validatorObjSymbol } from './validate'
+
 export function iterateDeep(value, cb, path = []) {
   cb(path, value)
 
@@ -7,6 +9,9 @@ export function iterateDeep(value, cb, path = []) {
     })
   else if (isPlainObj(value)) {
     for (let key in value) iterateDeep(value[key], cb, [...path, key])
+    Object.getOwnPropertySymbols(value).forEach((sym) => {
+      iterateDeep(value[sym], cb, [...path, sym])
+    })
   }
 }
 
@@ -27,6 +32,15 @@ export function getFieldFromInst(name, inst) {
   return name
     .split('.')
     .reduce((current, pathName) => current?.[pathName], inst)
+}
+
+export function getFieldFromValidatorsMap(name, validatorsMap) {
+  return name.split('.').reduce((current, pathName) => {
+    if (current?.[validatorObjSymbol]) {
+      current = current?.[validatorObjSymbol]
+    }
+    return current?.[pathName]
+  }, validatorsMap)
 }
 
 export function setFieldToInst(name, value, inst) {
