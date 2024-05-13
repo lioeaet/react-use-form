@@ -1,10 +1,5 @@
-import {
-  clone,
-  getFieldFromInst,
-  setFieldToInst,
-  splitFieldOfArrayName,
-  iterateDeep,
-} from './util'
+import { clone, getFieldFromInst, setFieldToInst, iterateDeep } from './util'
+import { splitFieldOfArrayName } from './arrays'
 
 export const getInitState = (initValues) =>
   initValues?.then
@@ -300,6 +295,8 @@ function processRemoveInInst(arrayName, i, oldSrc, newSrc) {
       } else {
         newSrc[fieldName] = oldSrc[fieldName]
       }
+    } else {
+      newSrc[fieldName] = oldSrc[fieldName]
     }
   }
 }
@@ -350,6 +347,8 @@ function processInsertInInst(arrayName, i, oldSrc, newSrc) {
       } else {
         newSrc[fieldName] = oldSrc[fieldName]
       }
+    } else {
+      newSrc[fieldName] = oldSrc[fieldName]
     }
   }
 }
@@ -430,6 +429,8 @@ function processReplaceInInst(arrayName, from, to, oldSrc, newSrc) {
           newSrc[fieldName] = oldSrc[fieldName]
         }
       }
+    } else {
+      newSrc[fieldName] = oldSrc[fieldName]
     }
   }
 }

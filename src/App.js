@@ -5,6 +5,7 @@ function App() {
     initValues: {
       deep: [
         {
+          name: '',
           very: {
             array: [
               {
@@ -14,17 +15,17 @@ function App() {
                 shallow: '',
               },
             ],
-            name: '',
           },
         },
       ],
     },
     validators: {
       deep: array({
+        name: delay((val) => !val && 'required', 1000),
         very: {
           array: array({
             inside: {
-              deeply: (val) => !val && 'required',
+              deeply: delay((val) => !val && 'required', 1000),
             },
             shallow: advanced({
               CHANGE: [
@@ -50,6 +51,15 @@ function App() {
 
 export default App
 
+function delay(fn, ms = 200) {
+  return (...args) =>
+    new Promise((r) => {
+      setTimeout(() => {
+        r()
+      }, ms)
+    }).then(() => fn(...args))
+}
+
 function FormInput({ name, placeholder }) {
   const { value, error, loading, onChange, onBlur } = useField(name)
   return (
@@ -60,6 +70,7 @@ function FormInput({ name, placeholder }) {
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
+          style={{ width: 200 }}
         />
         {loading && 'loading...'}
       </div>
@@ -75,23 +86,38 @@ function FirstSubformsForm({ name }) {
     <>
       {value.map((obj, i) => (
         <div key={i}>
-          <SecondSubformsForm name={`${name}.${i}.very.array`} />
-          <FormInput name={`${name}.${i}.name`} />
+          <FormInput
+            placeholder={`${name}.${i}.name`}
+            name={`${name}.${i}.name`}
+          />
           <button
             onClick={(e) => {
               e.preventDefault()
               remove(i)
             }}
           >
-            remove
+            remove {`${name}.${i}`}
           </button>
+          <SecondSubformsForm name={`${name}.${i}.very.array`} />
         </div>
       ))}
       <div>
         <button
           onClick={(e) => {
             e.preventDefault()
-            insert(value.length, { name: '', surname: '' })
+            insert(value.length, {
+              name: '',
+              very: {
+                array: [
+                  {
+                    inside: {
+                      deeply: '',
+                    },
+                    shallow: '',
+                  },
+                ],
+              },
+            })
           }}
         >
           add
@@ -115,7 +141,19 @@ function FirstSubformsForm({ name }) {
         <button
           onClick={(e) => {
             e.preventDefault()
-            insert(0, { name: '', surname: '' })
+            insert(0, {
+              name: '',
+              very: {
+                array: [
+                  {
+                    inside: {
+                      deeply: '',
+                    },
+                    shallow: '',
+                  },
+                ],
+              },
+            })
           }}
         >
           unshift
@@ -138,6 +176,27 @@ function SecondSubformsForm({ name }) {
         name={`${name}.${i}.shallow`}
         placeholder={`${name}.${i}.shallow`}
       />
+      <button
+        onClick={(e) => {
+          e.preventDefault()
+          insert(0, {
+            inside: {
+              deeply: '',
+            },
+            shallow: '',
+          })
+        }}
+      >
+        unshift second
+      </button>
+      <button
+        onClick={(e) => {
+          e.preventDefault()
+          remove(i)
+        }}
+      >
+        remove {`${name}.${i}`}
+      </button>
     </div>
   ))
 }

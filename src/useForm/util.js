@@ -53,39 +53,3 @@ export function setFieldToInst(name, value, inst) {
   }
   return inst
 }
-
-export function splitFieldOfArrayName(arrayFieldName, fieldName) {
-  const keyAfterArray = fieldName.slice(arrayFieldName.length + 1)
-  return {
-    num: Number(keyAfterArray.slice(0, keyAfterArray.indexOf('.'))),
-    fieldEndPart: keyAfterArray.slice(keyAfterArray.indexOf('.') + 1),
-  }
-}
-
-export function getLastArrayOfFieldName(name, arrayFields) {
-  const path = name.split('.')
-  const targetArrayFields = arrayFields.filter((arrayField) => {
-    const arrayFieldPath = arrayField.split('.')
-    for (let i = 0; i < arrayFieldPath.length; i++) {
-      if (arrayFieldPath[i] !== path[i]) {
-        if (arrayFieldPath[i] === 'i' && typeof Number(path[i]) === 'number')
-          continue
-        else return false
-      }
-    }
-    return true
-  })
-  return targetArrayFields[targetArrayFields.length - 1]
-}
-
-export function getFieldNameWithoutI(name, lastArrayOfFieldName) {
-  const path = name.split('.')
-  const arrayFieldPath = lastArrayOfFieldName.split('.')
-
-  const pathWithoutI = []
-  for (let i = 0; i < path.length; i++) {
-    if (arrayFieldPath[i] === 'i' || i === arrayFieldPath.length) continue
-    else pathWithoutI.push(path[i])
-  }
-  return pathWithoutI.join('.')
-}

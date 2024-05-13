@@ -9,7 +9,8 @@ import {
   joinValidators,
   VALIDATOR_OBJ,
 } from './validate'
-import { iterateDeep, getFieldFromInst, splitFieldOfArrayName } from './util'
+import { splitFieldOfArrayName } from './arrays'
+import { iterateDeep, getFieldFromInst } from './util'
 import { getReducer, getInitState } from './reducer'
 export { advanced, array } from './validate'
 
@@ -239,7 +240,6 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
               // меняем имя поля на актуальное
               // если во время валидации в родительском массиве перестановки
               actualFieldName = updNameWithArrayReplacements(
-                arrayOfFieldName,
                 fieldName,
                 replacementsDuringValidation
               )
@@ -312,13 +312,11 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
 
 export const FormContext = createContext()
 
-function updNameWithArrayReplacements(
-  arrayOfFieldName,
-  fieldName,
-  replacementsDuringValidation
-) {
+function updNameWithArrayReplacements(fieldName, replacementsDuringValidation) {
   return replacementsDuringValidation.reduce((nextFieldName, arrayAction) => {
     if (!nextFieldName) return nextFieldName
+    if (!fieldName.startsWith(arrayAction.name)) return nextFieldName
+
     const { num, fieldEndPart } = splitFieldOfArrayName(
       arrayAction.name,
       nextFieldName

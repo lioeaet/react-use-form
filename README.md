@@ -11,7 +11,7 @@
 8. В библиотеке есть зарезервированый для массивов ключ поля 'i'.
 9. Валидация с предыдущими значениями инпутов возвращает закешированный результат ошибки
 
-```
+```js
 const FormApp = () => {
   const { Form } = useForm({
     initValues: {
@@ -63,15 +63,8 @@ function Input({ name }) {
 }
 ```
 
-## TODO
 
-1. Array: replace, insert, remove
-2. inner arrays?
-
-
-useSessionForm
-
-
+```
 ({
   initValues: {} | [],
   validate: {
@@ -130,3 +123,4 @@ type Validator = Validator[] |
 <Form>
   <Input name='k' />
 </Form>
+```
