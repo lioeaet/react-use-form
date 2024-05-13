@@ -64,7 +64,7 @@ function FormInput({ name }) {
 }
 
 function SubformsArray({ name }) {
-  const { value, insert, replace, remove } = useSubformsArray(name)
+  const { value, insert, remove } = useSubformsArray(name)
 
   return (
     <>

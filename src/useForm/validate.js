@@ -36,6 +36,8 @@ export function getFieldsValidateOnChange(
 
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
+      // ?TODO: array.1.i.name
+      // parent для всех возможных i (array.1.0.name, array.1.1.name...)
       if (indexes.length) {
         // array.i.name -> array.1.name
         fieldName = replaceIOnNum(fieldName, indexes)
