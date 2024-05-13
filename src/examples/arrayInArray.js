@@ -118,7 +118,7 @@ function SecondSubformsArray({ name }) {
               remove(i)
             }}
           >
-            remove inner
+            remove
           </button>
         </div>
       ))}
@@ -129,7 +129,7 @@ function SecondSubformsArray({ name }) {
             insert(value.length, { name: '', surname: '' })
           }}
         >
-          add inner
+          add
         </button>
         <button
           onClick={(e) => {

@@ -37,7 +37,9 @@ export function getFieldFromInst(name, inst) {
 export function getFieldFromValidatorsMap(name, validatorsMap) {
   return name.split('.').reduce((current, pathName) => {
     if (current?.[VALIDATOR_OBJ]) {
-      current = current?.[VALIDATOR_OBJ]
+      while (current?.[VALIDATOR_OBJ]) {
+        current = current?.[VALIDATOR_OBJ]
+      }
     }
     return current?.[pathName]
   }, validatorsMap)

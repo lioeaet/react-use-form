@@ -32,7 +32,7 @@ export function getFieldsValidateOnChange(
 
   // array.0.name.oki.0.doki -> ['array', 'name.oki', 'doki'], [0, 0]
   const { indexes, path } = splitOnPathWithIndexes(name, arrayFields)
-  const abstractFieldName = path.join('.i.')
+  const abstractFieldName = path.join('.i.').replaceAll('..', '.')
 
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
@@ -72,7 +72,7 @@ export function getFieldsValidateOnBlur(
 
   // array.0.name.oki.0.doki -> ['array', 'name.oki', 'doki'], [0, 0]
   const { indexes, path } = splitOnPathWithIndexes(name, arrayFields)
-  const abstractFieldName = path.join('.i.')
+  const abstractFieldName = path.join('.i.').replaceAll('..', '.')
 
   if (childFields[abstractFieldName]) {
     for (let fieldName of childFields[abstractFieldName]) {
