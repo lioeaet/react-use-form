@@ -25,7 +25,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
   const lastValidatedValuesRef = useRef({})
 
   const arrayFields = useArrayFields(validatorsMap)
-  const childFields = useChildFields(validatorsMap, arrayFields)
+  const childFields = useChildFields(validatorsMap)
 
   const [state, dispatch, stateRef] = useReducerWithRef(
     getReducer(
@@ -390,7 +390,7 @@ function useArrayFields(validators) {
   }, [validators])
 }
 
-function useChildFields(validators, arrayFields) {
+function useChildFields(validators) {
   return useMemo(() => {
     const childFields = {}
 
@@ -411,7 +411,7 @@ function useChildFields(validators, arrayFields) {
     })
 
     return childFields
-  }, [validators, arrayFields])
+  }, [validators])
 }
 
 export function useField(name) {
