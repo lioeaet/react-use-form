@@ -274,11 +274,13 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
               dispatch({
                 type: 'submit success',
               })
+              return res
             })
             .catch((e) => {
               dispatch({
                 type: 'submit failure',
               })
+              throw e
             })
         } else return result
       },
