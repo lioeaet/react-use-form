@@ -1,18 +1,15 @@
 import { clone, getFieldFromInst, setFieldToInst, iterateDeep } from './util'
 import { splitFieldOfArrayName } from './arrays'
 
-export const getInitState = (initValues) =>
-  initValues?.then
-    ? initValues
-    : {
-        values: initValues,
-        submitting: false,
-        submitted: false,
-        failedError: null,
-        validationEnabled: {},
-        errors: {},
-        loaders: {},
-      }
+export const getInitState = (initValues) => ({
+  values: initValues,
+  submitting: false,
+  submitted: false,
+  failedError: null,
+  validationEnabled: {},
+  errors: {},
+  loaders: {},
+})
 
 export function getReducer(
   replacementsDuringValidationRef,

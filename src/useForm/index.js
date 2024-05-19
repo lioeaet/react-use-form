@@ -72,7 +72,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
         arrayFields
       )
 
-      const fieldsValidateOnValidate = getFieldsValidateOnBlur(
+      const fieldsValidateOnBlur = getFieldsValidateOnBlur(
         name,
         validatorsMap,
         childFields,
@@ -81,13 +81,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       )
 
       return execValidateObject(
-        joinValidators(fieldsValidateOnChange, fieldsValidateOnValidate)
+        joinValidators(fieldsValidateOnChange, fieldsValidateOnBlur)
       )
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-    validate: useCallback((name) => {
-      // const validateField = getValidateField(name, validatorsMap)
-      // validateField()
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
     submit: async (e) => {
@@ -117,55 +112,67 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
           })
         })
     },
-    setLoader: useCallback((name, loader) => {
-      dispatch({
-        type: 'set loader',
-        name,
-        loader,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-    setError: useCallback((name, error) => {
-      dispatch({
-        type: 'set error',
-        name,
-        error,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-    reset: useCallback((initValues) => {
-      dispatch({
-        type: 'reset',
-        initValues,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-    insert: useCallback((name, i, value) => {
-      dispatch({
-        type: 'array insert',
-        name,
-        i,
-        value,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-    replace: useCallback((name, from, to) => {
-      dispatch({
-        type: 'array replace',
-        name,
-        from,
-        to,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-    remove: useCallback((name, i) => {
-      dispatch({
-        type: 'array remove',
-        name,
-        i,
-      })
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
+    setLoader: useCallback(
+      (name, loader) => {
+        dispatch({
+          type: 'set loader',
+          name,
+          loader,
+        })
+      },
+      [dispatch]
+    ),
+    setError: useCallback(
+      (name, error) => {
+        dispatch({
+          type: 'set error',
+          name,
+          error,
+        })
+      },
+      [dispatch]
+    ),
+    reset: useCallback(
+      (initValues) => {
+        dispatch({
+          type: 'reset',
+          initValues,
+        })
+      },
+      [dispatch]
+    ),
+    insert: useCallback(
+      (name, i, value) => {
+        dispatch({
+          type: 'array insert',
+          name,
+          i,
+          value,
+        })
+      },
+      [dispatch]
+    ),
+    replace: useCallback(
+      (name, from, to) => {
+        dispatch({
+          type: 'array replace',
+          name,
+          from,
+          to,
+        })
+      },
+      [dispatch]
+    ),
+    remove: useCallback(
+      (name, i) => {
+        dispatch({
+          type: 'array remove',
+          name,
+          i,
+        })
+      },
+      [dispatch]
+    ),
   }
 
   function execValidateObject(validateObj) {
