@@ -37,6 +37,153 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
     getInitState(initValues)
   )
 
+  const setLoader = useCallback(
+    (name, loader) => {
+      dispatch({
+        type: 'set loader',
+        name,
+        loader,
+      })
+    },
+    [dispatch]
+  )
+  const setError = useCallback(
+    (name, error) => {
+      dispatch({
+        type: 'set error',
+        name,
+        error,
+      })
+    },
+    [dispatch]
+  )
+
+  const execValidateObject = useCallback(
+    (validateObj) => {
+      const fieldsErrors = {}
+      const fieldsPromises = {}
+
+      // если во время валидации произошли изменения индексов в массивах
+      // применяем их к fieldName внутри валидаций
+      const replacementsDuringValidation = []
+      replacementsDuringValidationRef.current.push(replacementsDuringValidation)
+      function removeReplacementsDuringValidation() {
+        const i = replacementsDuringValidationRef.current.indexOf(
+          replacementsDuringValidation
+        )
+        replacementsDuringValidationRef.current.splice(i, 1)
+      }
+
+      // при первой ошибке, показываем её и ставим setLoading(false)
+      // (остальные валидации после этого игнорируем)
+      // при последней асинхронной валидации
+      // если ошибки нет в ней и в fieldsErrors[fieldName]
+      // ставим setLoading(false) и setError(null)
+      // если нет асинхронных валидаций,
+      // то setError(null) делаем на последней синхронной валидации
+      // а setLoading трогаем
+
+      outer: for (let fieldName in validateObj) {
+        const { validators, argsFields } = validateObj[fieldName]
+        const values = argsFields.map((field) =>
+          getFieldFromInst(field, stateRef.current.values)
+        )
+
+        const shouldValidate =
+          !lastValidatedValuesRef.current[fieldName] ||
+          lastValidatedValuesRef.current[fieldName].some(
+            (val, i) => val !== values[i]
+          )
+        if (!shouldValidate) {
+          fieldsErrors[fieldName] = fieldsPromises[fieldName] =
+            stateRef.current.errors[fieldName]
+          continue
+        }
+
+        lastValidateObjRef.current[fieldName] = validateObj[fieldName]
+        lastValidatedValuesRef.current[fieldName] = values
+
+        // для поля один промис
+        // выполняем его при первой ошибке, либо при завершении последней валидации
+        let resolveValidationPromise
+        let promisesCount = 0
+
+        for (let i = 0; i < validators.length; i++) {
+          const validator = validators[i]
+          const result = validator(...values)
+
+          if (result?.then) {
+            if (!promisesCount) setLoader(fieldName, true)
+            promisesCount++
+            if (!fieldsPromises[fieldName]) {
+              // eslint-disable-next-line no-loop-func
+              fieldsPromises[fieldName] = new Promise((r) => {
+                resolveValidationPromise = r
+              })
+            }
+            // eslint-disable-next-line no-loop-func
+            result.then((error) => {
+              const arrayOfFieldName = arrayFields.find((arrField) =>
+                fieldName.startsWith(arrField)
+              )
+              let actualFieldName = fieldName
+              if (arrayOfFieldName) {
+                // меняем имя поля на актуальное
+                // если во время валидации в родительском массиве перестановки
+                actualFieldName = updNameWithArrayReplacements(
+                  fieldName,
+                  replacementsDuringValidation
+                )
+                if (!actualFieldName) return
+              }
+
+              if (fieldsErrors[actualFieldName]) return
+              if (
+                lastValidateObjRef.current[actualFieldName] !==
+                validateObj[fieldName]
+              )
+                return
+
+              --promisesCount
+
+              if (error) {
+                fieldsErrors[actualFieldName] = error
+                setError(actualFieldName, error)
+                setLoader(actualFieldName, false)
+                removeReplacementsDuringValidation()
+                resolveValidationPromise(error)
+              } else if (!promisesCount) {
+                setError(actualFieldName, null)
+                setLoader(actualFieldName, false)
+                removeReplacementsDuringValidation()
+                resolveValidationPromise(null)
+              }
+            })
+          } else {
+            if (result) {
+              fieldsErrors[fieldName] = result
+              setError(fieldName, result)
+              if (promisesCount) {
+                setLoader(fieldName, false)
+                removeReplacementsDuringValidation()
+              }
+              if (resolveValidationPromise) resolveValidationPromise(result)
+              else fieldsPromises[fieldName] = result
+              continue outer
+            } else if (!promisesCount && i === validators.length - 1) {
+              setError(fieldName, null)
+              if (resolveValidationPromise) resolveValidationPromise(null)
+              else fieldsPromises[fieldName] = null
+            }
+          }
+        }
+      }
+      const promisesArr = Object.values(fieldsPromises)
+      return Promise.all(promisesArr)
+    },
+    [setLoader, setError, arrayFields, stateRef]
+  )
+
   const actions = {
     change: useCallback(
       (name, value) => {
@@ -58,8 +205,14 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
         )
         return execValidateObject(fieldsValidateOnChange)
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [validatorsMap, arrayFields, childFields]
+      [
+        validatorsMap,
+        arrayFields,
+        childFields,
+        dispatch,
+        execValidateObject,
+        stateRef,
+      ]
     ),
     blur: useCallback(
       (name) => {
@@ -88,56 +241,58 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
           joinValidators(fieldsValidateOnChange, fieldsValidateOnBlur)
         )
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [validatorsMap, arrayFields, childFields]
+      [
+        validatorsMap,
+        arrayFields,
+        childFields,
+        dispatch,
+        execValidateObject,
+        stateRef,
+      ]
     ),
-    submit: async (e) => {
-      e.preventDefault()
-      dispatch({
-        type: 'submit start',
-      })
-      const errors = await execValidateObject(
-        getFieldsValidateOnSubmit(validatorsMap, arrayFields, stateRef)
-      )
-
-      if (errors.some((err) => err)) {
+    submit: useCallback(
+      async (e) => {
+        e.preventDefault()
         dispatch({
-          type: 'submit failure',
+          type: 'submit start',
         })
-      }
+        const errors = await execValidateObject(
+          getFieldsValidateOnSubmit(validatorsMap, arrayFields, stateRef)
+        )
 
-      return submit(stateRef.current.values)
-        .then((res) => {
-          dispatch({
-            type: 'submit success',
-          })
-        })
-        .catch((e) => {
+        if (errors.some((err) => err)) {
           dispatch({
             type: 'submit failure',
           })
-        })
-    },
-    setLoader: useCallback(
-      (name, loader) => {
-        dispatch({
-          type: 'set loader',
-          name,
-          loader,
-        })
+        }
+
+        const result = submit(stateRef.current.values)
+
+        if (result?.then) {
+          return result
+            .then((res) => {
+              dispatch({
+                type: 'submit success',
+              })
+            })
+            .catch((e) => {
+              dispatch({
+                type: 'submit failure',
+              })
+            })
+        } else return result
       },
-      [dispatch]
+      [
+        execValidateObject,
+        arrayFields,
+        dispatch,
+        stateRef,
+        submit,
+        validatorsMap,
+      ]
     ),
-    setError: useCallback(
-      (name, error) => {
-        dispatch({
-          type: 'set error',
-          name,
-          error,
-        })
-      },
-      [dispatch]
-    ),
+    setLoader,
+    setError,
     reset: useCallback(
       (initValues) => {
         dispatch({
@@ -179,129 +334,6 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       },
       [dispatch]
     ),
-  }
-
-  function execValidateObject(validateObj) {
-    const fieldsErrors = {}
-    const fieldsPromises = {}
-
-    // если во время валидации произошли изменения индексов в массивах
-    // применяем их к fieldName внутри валидаций
-    const replacementsDuringValidation = []
-    replacementsDuringValidationRef.current.push(replacementsDuringValidation)
-    function removeReplacementsDuringValidation() {
-      const i = replacementsDuringValidationRef.current.indexOf(
-        replacementsDuringValidation
-      )
-      replacementsDuringValidationRef.current.splice(i, 1)
-    }
-
-    // при первой ошибке, показываем её и ставим setLoading(false)
-    // (остальные валидации после этого игнорируем)
-    // при последней асинхронной валидации
-    // если ошибки нет в ней и в fieldsErrors[fieldName]
-    // ставим setLoading(false) и setError(null)
-    // если нет асинхронных валидаций,
-    // то setError(null) делаем на последней синхронной валидации
-    // а setLoading трогаем
-
-    outer: for (let fieldName in validateObj) {
-      const { validators, argsFields } = validateObj[fieldName]
-      const values = argsFields.map((field) =>
-        getFieldFromInst(field, stateRef.current.values)
-      )
-
-      const shouldValidate =
-        !lastValidatedValuesRef.current[fieldName] ||
-        lastValidatedValuesRef.current[fieldName].some(
-          (val, i) => val !== values[i]
-        )
-      if (!shouldValidate) {
-        fieldsErrors[fieldName] = fieldsPromises[fieldName] =
-          stateRef.current.errors[fieldName]
-        continue
-      }
-
-      lastValidateObjRef.current[fieldName] = validateObj[fieldName]
-      lastValidatedValuesRef.current[fieldName] = values
-
-      // для поля один промис
-      // выполняем его при первой ошибке, либо при завершении последней валидации
-      let resolveValidationPromise
-      let promisesCount = 0
-
-      for (let i = 0; i < validators.length; i++) {
-        const validator = validators[i]
-        const result = validator(...values)
-
-        if (result?.then) {
-          if (!promisesCount) actions.setLoader(fieldName, true)
-          promisesCount++
-          if (!fieldsPromises[fieldName]) {
-            // eslint-disable-next-line no-loop-func
-            fieldsPromises[fieldName] = new Promise((r) => {
-              resolveValidationPromise = r
-            })
-          }
-          // eslint-disable-next-line no-loop-func
-          result.then((error) => {
-            const arrayOfFieldName = arrayFields.find((arrField) =>
-              fieldName.startsWith(arrField)
-            )
-            let actualFieldName = fieldName
-            if (arrayOfFieldName) {
-              // меняем имя поля на актуальное
-              // если во время валидации в родительском массиве перестановки
-              actualFieldName = updNameWithArrayReplacements(
-                fieldName,
-                replacementsDuringValidation
-              )
-              if (!actualFieldName) return
-            }
-
-            if (fieldsErrors[actualFieldName]) return
-            if (
-              lastValidateObjRef.current[actualFieldName] !==
-              validateObj[fieldName]
-            )
-              return
-
-            --promisesCount
-
-            if (error) {
-              fieldsErrors[actualFieldName] = error
-              actions.setError(actualFieldName, error)
-              actions.setLoader(actualFieldName, false)
-              removeReplacementsDuringValidation()
-              resolveValidationPromise(error)
-            } else if (!promisesCount) {
-              actions.setError(actualFieldName, null)
-              actions.setLoader(actualFieldName, false)
-              removeReplacementsDuringValidation()
-              resolveValidationPromise(null)
-            }
-          })
-        } else {
-          if (result) {
-            fieldsErrors[fieldName] = result
-            actions.setError(fieldName, result)
-            if (promisesCount) {
-              actions.setLoader(fieldName, false)
-              removeReplacementsDuringValidation()
-            }
-            if (resolveValidationPromise) resolveValidationPromise(result)
-            else fieldsPromises[fieldName] = result
-            continue outer
-          } else if (!promisesCount && i === validators.length - 1) {
-            actions.setError(fieldName, null)
-            if (resolveValidationPromise) resolveValidationPromise(null)
-            else fieldsPromises[fieldName] = null
-          }
-        }
-      }
-    }
-    const promisesArr = Object.values(fieldsPromises)
-    return Promise.all(promisesArr)
   }
 
   const Form = useCallback(function Form({ children, ...restProps }) {

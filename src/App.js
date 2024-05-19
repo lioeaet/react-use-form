@@ -24,7 +24,7 @@ function App() {
         })
       ),
     },
-    submit: console.log,
+    submit: (...args) => console.log(...args),
   })
 
   return (
