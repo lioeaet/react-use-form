@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef } from 'react'
+import { createContext, useCallback, useContext, useRef, useMemo } from 'react'
 import { useReducerWithRef } from './useReducerWithRef'
 import {
   ADVANCED_VALIDATOR,
@@ -38,53 +38,59 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
   )
 
   const actions = {
-    change: useCallback((name, value) => {
-      dispatch({
-        type: 'change',
-        name,
-        value,
-      })
+    change: useCallback(
+      (name, value) => {
+        dispatch({
+          type: 'change',
+          name,
+          value,
+        })
 
-      // валидируются
-      // 1. Само поле name по default если validationEnabled
-      // 2. Зависимые поля по default, если у них validationEnabled
-      const fieldsValidateOnChange = getFieldsValidateOnChange(
-        name,
-        validatorsMap,
-        childFields,
-        stateRef,
-        arrayFields
-      )
-      return execValidateObject(fieldsValidateOnChange)
+        // валидируются
+        // 1. Само поле name по default если validationEnabled
+        // 2. Зависимые поля по default, если у них validationEnabled
+        const fieldsValidateOnChange = getFieldsValidateOnChange(
+          name,
+          validatorsMap,
+          childFields,
+          stateRef,
+          arrayFields
+        )
+        return execValidateObject(fieldsValidateOnChange)
+      },
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
-    blur: useCallback((name) => {
-      dispatch({
-        type: 'enable validation',
-        name,
-      })
+      [validatorsMap, arrayFields, childFields]
+    ),
+    blur: useCallback(
+      (name) => {
+        dispatch({
+          type: 'enable validation',
+          name,
+        })
 
-      const fieldsValidateOnChange = getFieldsValidateOnChange(
-        name,
-        validatorsMap,
-        childFields,
-        stateRef,
-        arrayFields
-      )
+        const fieldsValidateOnChange = getFieldsValidateOnChange(
+          name,
+          validatorsMap,
+          childFields,
+          stateRef,
+          arrayFields
+        )
 
-      const fieldsValidateOnBlur = getFieldsValidateOnBlur(
-        name,
-        validatorsMap,
-        childFields,
-        arrayFields,
-        stateRef
-      )
+        const fieldsValidateOnBlur = getFieldsValidateOnBlur(
+          name,
+          validatorsMap,
+          childFields,
+          arrayFields,
+          stateRef
+        )
 
-      return execValidateObject(
-        joinValidators(fieldsValidateOnChange, fieldsValidateOnBlur)
-      )
+        return execValidateObject(
+          joinValidators(fieldsValidateOnChange, fieldsValidateOnBlur)
+        )
+      },
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []),
+      [validatorsMap, arrayFields, childFields]
+    ),
     submit: async (e) => {
       e.preventDefault()
       dispatch({
@@ -368,40 +374,44 @@ function updNameWithArrayReplacements(fieldName, replacementsDuringValidation) {
 }
 
 function useArrayFields(validators) {
-  const arrayFields = []
+  return useMemo(() => {
+    const arrayFields = []
 
-  iterateDeep(validators, (path, val) => {
-    if (val?.[ARRAY_FIELD]) {
-      const arrayFieldName = path
-        .map((x) => (x === VALIDATOR_OBJ ? 'i' : x))
-        .join('.')
-      arrayFields.push(arrayFieldName)
-    }
-  })
+    iterateDeep(validators, (path, val) => {
+      if (val?.[ARRAY_FIELD]) {
+        const arrayFieldName = path
+          .map((x) => (x === VALIDATOR_OBJ ? 'i' : x))
+          .join('.')
+        arrayFields.push(arrayFieldName)
+      }
+    })
 
-  return arrayFields
+    return arrayFields
+  }, [validators])
 }
 
 function useChildFields(validators, arrayFields) {
-  const childFields = {}
+  return useMemo(() => {
+    const childFields = {}
 
-  iterateDeep(validators, (pathWithValidatorObjSymbol, val) => {
-    if (val?.[ADVANCED_VALIDATOR]) {
-      const realVal = val[VALIDATOR_OBJ]
-      const realPath = pathWithValidatorObjSymbol.map((key) =>
-        key === VALIDATOR_OBJ ? 'i' : key
-      )
+    iterateDeep(validators, (pathWithValidatorObjSymbol, val) => {
+      if (val?.[ADVANCED_VALIDATOR]) {
+        const realVal = val[VALIDATOR_OBJ]
+        const realPath = pathWithValidatorObjSymbol.map((key) =>
+          key === VALIDATOR_OBJ ? 'i' : key
+        )
 
-      realVal.PARENTS?.forEach?.((parentName) => {
-        let childName = realPath.join('.')
+        realVal.PARENTS?.forEach?.((parentName) => {
+          let childName = realPath.join('.')
 
-        if (!childFields[parentName]) childFields[parentName] = [childName]
-        else childFields.push(childName)
-      })
-    }
-  })
+          if (!childFields[parentName]) childFields[parentName] = [childName]
+          else childFields.push(childName)
+        })
+      }
+    })
 
-  return childFields
+    return childFields
+  }, [validators, arrayFields])
 }
 
 export function useField(name) {
