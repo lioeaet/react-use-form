@@ -269,7 +269,7 @@ function getValidatorName(fieldName, arrayFields) {
   } else return fieldName
 }
 
-export function joinValidators(...validators) {
+export function joinFieldsValidate(...validators) {
   const result = {}
   for (let validator of validators) {
     for (let fieldName in validator) {
