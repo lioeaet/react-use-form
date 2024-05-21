@@ -1,6 +1,13 @@
-import { useForm, useField, useSubformsArray, advanced, array } from './useForm'
+import {
+  useForm,
+  useField,
+  useSubformsArray,
+  advanced,
+  array,
+} from '../useForm'
+import { Link } from 'react-router-dom'
 
-function App() {
+export function ArrayInArray() {
   const { Form, actions } = useForm({
     initValues: {
       array: [
@@ -28,14 +35,19 @@ function App() {
   })
 
   return (
-    <Form onSubmit={actions.submit}>
-      <SubformsArray name="array" />
-      <button type="submit">submit</button>
-    </Form>
+    <>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <Link to="/">index</Link>
+        <Link to="/array-in-array">array in array</Link>
+        <Link to="/deep-array">deep array</Link>
+      </div>
+      <Form onSubmit={actions.submit}>
+        <SubformsArray name="array" />
+        <button type="submit">submit</button>
+      </Form>
+    </>
   )
 }
-
-export default App
 
 function delay(fn, ms = 200) {
   return (...args) =>
@@ -64,7 +76,7 @@ function FormInput({ name }) {
 }
 
 function SubformsArray({ name }) {
-  const { value, insert, replace, remove } = useSubformsArray(name)
+  const { value, insert, remove } = useSubformsArray(name)
 
   return (
     <>

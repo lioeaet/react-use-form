@@ -1,6 +1,13 @@
-import { useForm, useField, useSubformsArray, advanced, array } from './useForm'
+import {
+  useForm,
+  useField,
+  useSubformsArray,
+  advanced,
+  array,
+} from '../useForm'
+import { Link } from 'react-router-dom'
 
-function App() {
+export function IndexForm() {
   const { Form, actions } = useForm({
     initValues: {
       password: '',
@@ -9,24 +16,8 @@ function App() {
       },
       array: [
         {
-          name: 'doki',
+          name: 'oki',
           surname: 'doki',
-        },
-        {
-          name: '1',
-          surname: '1',
-        },
-        {
-          name: '2',
-          surname: '2',
-        },
-        {
-          name: '3',
-          surname: '3',
-        },
-        {
-          name: '4',
-          surname: '4',
         },
       ],
     },
@@ -70,16 +61,21 @@ function App() {
   })
 
   return (
-    <Form onSubmit={actions.submit}>
-      <FormInput name="password" />
-      <FormInput name="passwordRepeat.deep" />
-      <SubformsArray name="array" />
-      <button type="submit">submit</button>
-    </Form>
+    <>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <Link to="/">index</Link>
+        <Link to="/array-in-array">array in array</Link>
+        <Link to="/deep-array">deep array</Link>
+      </div>
+      <Form onSubmit={actions.submit}>
+        <FormInput name="password" />
+        <FormInput name="passwordRepeat.deep" />
+        <SubformsArray name="array" />
+        <button type="submit">submit</button>
+      </Form>
+    </>
   )
 }
-
-export default App
 
 function delay(fn, ms = 200) {
   return (...args) =>

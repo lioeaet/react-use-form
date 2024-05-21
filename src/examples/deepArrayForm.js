@@ -1,6 +1,13 @@
-import { useForm, advanced, array, useField, useSubformsArray } from './useForm'
+import {
+  useForm,
+  advanced,
+  array,
+  useField,
+  useSubformsArray,
+} from '../useForm'
+import { Link } from 'react-router-dom'
 
-function App() {
+export function DeepArrayForm() {
   const { Form, actions } = useForm({
     initValues: {
       deep: [
@@ -42,14 +49,19 @@ function App() {
   })
 
   return (
-    <Form onSubmit={actions.submit}>
-      <FirstSubformsForm name="deep" />
-      <button type="submit">submit</button>
-    </Form>
+    <>
+      <div style={{ display: 'grid', gap: 8 }}>
+        <Link to="/">index</Link>
+        <Link to="/array-in-array">array in array</Link>
+        <Link to="/deep-array">deep array</Link>
+      </div>
+      <Form onSubmit={actions.submit}>
+        <FirstSubformsForm name="deep" />
+        <button type="submit">submit</button>
+      </Form>
+    </>
   )
 }
-
-export default App
 
 function delay(fn, ms = 200) {
   return (...args) =>

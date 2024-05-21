@@ -18,6 +18,8 @@ export function getLastArrayOfFieldName(name, arrayFields) {
 export function splitOnPathWithIndexes(name, arrayFields) {
   const fieldPath = name.split('.')
   const lastArrayOfFieldName = getLastArrayOfFieldName(name, arrayFields)
+  if (!lastArrayOfFieldName) return { path: [name], indexes: [] }
+
   const arrayPath = lastArrayOfFieldName.split('.')
 
   const indexes = []
