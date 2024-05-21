@@ -23,6 +23,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
 
   // для отмены валидации уже валидированных значений
   const lastValidatedValuesRef = useRef({})
+  const lastValidatedTypeRef = useRef({})
 
   const arrayFields = useArrayFields(validatorsMap)
   const childFields = useChildFields(validatorsMap)
@@ -81,6 +82,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
         )
         return execValidateObject(
           fieldsValidateOnChange,
+          'change',
+          lastValidatedTypeRef,
           arrayFields,
           stateRef,
           replacementsDuringValidationRef,
@@ -125,6 +128,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
 
         return execValidateObject(
           joinFieldsValidate(fieldsValidateOnChange, fieldsValidateOnBlur),
+          'blur',
+          lastValidatedTypeRef,
           arrayFields,
           stateRef,
           replacementsDuringValidationRef,
@@ -152,6 +157,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
         })
         const errors = await execValidateObject(
           getFieldsValidateOnSubmit(validatorsMap, arrayFields, stateRef),
+          'submit',
+          lastValidatedTypeRef,
           arrayFields,
           stateRef,
           replacementsDuringValidationRef,
@@ -263,6 +270,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
 
 function execValidateObject(
   validateObj,
+  validateType,
+  lastValidatedTypeRef,
   arrayFields,
   stateRef,
   replacementsDuringValidationRef,
@@ -304,7 +313,11 @@ function execValidateObject(
       !lastValidatedValuesRef.current[fieldName] ||
       lastValidatedValuesRef.current[fieldName].some(
         (val, i) => val !== values[i]
-      )
+      ) ||
+      lastValidatedTypeRef.current[fieldName] !== validateType
+
+    lastValidatedTypeRef.current[fieldName] = validateType
+
     if (!shouldValidate) {
       fieldsErrors[fieldName] = fieldsPromises[fieldName] =
         stateRef.current.errors[fieldName]
