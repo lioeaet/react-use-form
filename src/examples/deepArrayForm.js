@@ -176,7 +176,7 @@ function FirstSubformsForm({ name }) {
 }
 
 function SecondSubformsForm({ name }) {
-  const { value, insert, replace, remove } = useSubformsArray(name)
+  const { value, insert, remove } = useSubformsArray(name)
 
   return value.map((obj, i) => (
     <div key={i}>

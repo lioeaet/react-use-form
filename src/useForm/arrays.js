@@ -75,8 +75,8 @@ export function getFieldNameWithoutI(name, lastArrayOfFieldName) {
   return pathWithoutI.join('.')
 }
 
-export function splitFieldOfArrayName(arrayFieldName, fieldName) {
-  const keyAfterArray = fieldName.slice(arrayFieldName.length + 1)
+export function splitFieldOfArrayName(arrayFieldName, name) {
+  const keyAfterArray = name.slice(arrayFieldName.length + 1)
   return {
     num: Number(keyAfterArray.slice(0, keyAfterArray.indexOf('.'))),
     fieldEndPart: keyAfterArray.slice(keyAfterArray.indexOf('.') + 1),

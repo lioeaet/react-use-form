@@ -35,20 +35,20 @@ export function getFieldsValidateOnChange(
   const abstractFieldName = path.join('.i.').replaceAll('..', '.')
 
   if (childFields[abstractFieldName]) {
-    for (let fieldName of childFields[abstractFieldName]) {
+    for (let name of childFields[abstractFieldName]) {
       // ?TODO: array.1.i.name
       // parent для всех возможных i (array.1.0.name, array.1.1.name...)
       if (indexes.length) {
         // array.i.name -> array.1.name
-        fieldName = replaceIOnNum(fieldName, indexes)
+        name = replaceIOnNum(name, indexes)
       }
-      if (validationEnabled[fieldName]) {
+      if (validationEnabled[name]) {
         const validators = getFieldValidatorsOnChange(
-          fieldName,
+          name,
           validatorsMap,
           arrayFields
         )
-        if (validators) fieldsValidate[fieldName] = validators
+        if (validators) fieldsValidate[name] = validators
       }
     }
   }
@@ -77,14 +77,14 @@ export function getFieldsValidateOnBlur(
   const abstractFieldName = path.join('.i.').replaceAll('..', '.')
 
   if (childFields[abstractFieldName]) {
-    for (let fieldName of childFields[abstractFieldName]) {
+    for (let name of childFields[abstractFieldName]) {
       if (indexes.length) {
         // array.i.name -> array.1.name
-        fieldName = replaceIOnNum(fieldName, indexes)
+        name = replaceIOnNum(name, indexes)
       }
-      if (validationEnabled[fieldName]) {
-        fieldsValidate[fieldName] = getValidateFieldOnBlur(
-          fieldName,
+      if (validationEnabled[name]) {
+        fieldsValidate[name] = getValidateFieldOnBlur(
+          name,
           validatorsMap,
           arrayFields
         )
@@ -260,24 +260,24 @@ function iterateValidationMap(value, cb, path = []) {
   }
 }
 
-function getValidatorName(fieldName, arrayFields) {
+function getValidatorName(name, arrayFields) {
   // array.1.name.1.oki -> array.i.name
-  const lastArrayOfFieldName = getLastArrayOfFieldName(fieldName, arrayFields)
+  const lastArrayOfFieldName = getLastArrayOfFieldName(name, arrayFields)
   if (lastArrayOfFieldName) {
     // array.1.name.1.oki -> array.name.oki
-    return getFieldNameWithoutI(fieldName, lastArrayOfFieldName)
-  } else return fieldName
+    return getFieldNameWithoutI(name, lastArrayOfFieldName)
+  } else return name
 }
 
 export function joinFieldsValidate(...validators) {
   const result = {}
   for (let validator of validators) {
-    for (let fieldName in validator) {
-      if (!result[fieldName]) result[fieldName] = validator[fieldName]
+    for (let name in validator) {
+      if (!result[name]) result[name] = validator[name]
       else
-        result[fieldName].validators = [
-          ...result[fieldName].validators,
-          ...validator[fieldName].validators,
+        result[name].validators = [
+          ...result[name].validators,
+          ...validator[name].validators,
         ]
     }
   }
