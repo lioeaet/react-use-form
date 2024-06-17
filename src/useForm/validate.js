@@ -104,41 +104,82 @@ export function getFieldsValidateOnSubmit(
   stateRef
 ) {
   const fieldsValidate = {}
-  const arraySubformsValidate = {}
+  const arrayFieldsValidators = {}
 
   iterateValidationMap(validatorsMap, (path, val) => {
     const name = path.join('.')
-    const parentArrayName = arrayFields.find(
-      (arrayFieldName) => path.join('.') === arrayFieldName
-    )
+    const parentArrayName = getLastArrayOfFieldName(name, arrayFields)
     if (!parentArrayName) {
       fieldsValidate[name] = getFieldValidateOnSubmit(name, val, arrayFields)
     } else {
-      arraySubformsValidate[name] = val
+      arrayFieldsValidators[name] = val
     }
   })
 
-  for (const arrayName in arraySubformsValidate) {
-    const value = getFieldFromInst(arrayName, stateRef.current.values)
-    for (let i = 0; i < value.length; i++) {
-      const subformValidationMap = arraySubformsValidate[arrayName]
-      // удаляем этот флаг для итераций через iterateValidationMap
-      // после выполнения функции возвращаем
-      delete subformValidationMap[ARRAY_FIELD]
+  for (const abstractFieldName in arrayFieldsValidators) {
+    const path = abstractFieldName.replaceAll('.i.i.', '.i..i.').split('.i.')
 
-      iterateValidationMap(subformValidationMap, (path, val) => {
-        const fullName = `${arrayName}.${i}.${path.join('.')}`
-        fieldsValidate[fullName] = getFieldValidateOnSubmit(
-          fullName,
-          val,
-          arrayFields
-        )
-      })
-      subformValidationMap[ARRAY_FIELD] = true
+    const arrayFieldsValues = getConcreteArrayFieldsValidators(
+      path,
+      stateRef,
+      arrayFieldsValidators[abstractFieldName]
+    )
+    for (const arrayFieldName in arrayFieldsValues) {
+      fieldsValidate[arrayFieldName] = getFieldValidateOnSubmit(
+        arrayFieldName,
+        arrayFieldsValues[arrayFieldName],
+        arrayFields
+      )
     }
   }
 
   return fieldsValidate
+}
+
+function getConcreteArrayFieldsValidators(
+  path,
+  stateRef,
+  validator,
+  currentPath = '',
+  result = {}
+) {
+  if (path.length === 1) {
+    currentPath += `.${path[0]}`
+    result[currentPath] = validator
+    return result
+  }
+
+  const [current, ...remainingPath] = path
+
+  const fields = getFieldFromInst(
+    currentPath && current
+      ? `${currentPath}.${current}`
+      : current
+      ? current
+      : currentPath,
+    stateRef.current.values
+  )
+
+  fields.forEach((_, index) => {
+    let newPath
+    if (currentPath && current) {
+      newPath = `${currentPath}.${current}.${index}`
+    } else if (current) {
+      newPath = `${current}.${index}`
+    } else {
+      newPath = `${currentPath}.${index}`
+    }
+
+    getConcreteArrayFieldsValidators(
+      remainingPath,
+      stateRef,
+      validator,
+      newPath,
+      result
+    )
+  })
+
+  return result
 }
 
 function getFieldValidateOnSubmit(name, val, arrayFields) {
@@ -247,10 +288,10 @@ function iterateValidationMap(value, cb, path = []) {
     if (value[ADVANCED_VALIDATOR]) {
       cb(path, value[VALIDATOR_OBJ])
     } else {
-      for (let key in value) {
-        if (value[ARRAY_FIELD]) {
-          cb(path, value[VALIDATOR_OBJ])
-        } else {
+      if (value[ARRAY_FIELD]) {
+        iterateValidationMap(value[VALIDATOR_OBJ], cb, [...path, 'i'])
+      } else {
+        for (let key in value) {
           iterateValidationMap(value[key], cb, [...path, key])
         }
       }
