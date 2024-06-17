@@ -488,7 +488,7 @@ function useChildFields(validators) {
           let childName = realPath.join('.')
 
           if (!childFields[parentName]) childFields[parentName] = [childName]
-          else childFields.push(childName)
+          else childFields[parentName].push(childName)
         })
       }
     })
