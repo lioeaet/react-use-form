@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useRef, useMemo } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useRef,
+  useMemo,
+  SyntheticEvent,
+  ReactNode,
+  FormHTMLAttributes,
+} from 'react'
 import { useReducerWithRef } from './useReducerWithRef'
 import {
   ADVANCED_VALIDATOR,
@@ -12,18 +21,38 @@ import {
 import { splitFieldOfArrayName } from './arrays'
 import { iterateDeep, getFieldFromInst } from './util'
 import { getReducer, getInitState } from './reducer'
+import {
+  Actions,
+  ChildFields,
+  InitValues,
+  ReplacementDuringValidation,
+  State,
+  ValidateObj,
+  ValidateType,
+  ValidatorsMap,
+} from './types'
 export { advanced, array } from './validate'
 
-export function useForm({ initValues, validators: validatorsMap, submit }) {
-  // [{ arrFieldName, type, args }]
-  const replacementsDuringValidationRef = useRef([])
+export function useForm({
+  initValues,
+  validators: validatorsMap,
+  submit,
+}: {
+  initValues: InitValues
+  validators: ValidatorsMap
+  submit: (values: Object) => void | Promise<unknown>
+}) {
+  // [{ name, type, args }]
+  const replacementsDuringValidationRef = useRef<
+    ReplacementDuringValidation[][]
+  >([])
 
   // для ликвидации состояния гонки
-  const lastValidateObjRef = useRef({})
+  const lastValidateObjRef = useRef<Object>({})
 
   // для отмены валидации уже валидированных значений
-  const lastValidatedValuesRef = useRef({})
-  const lastValidatedTypeRef = useRef({})
+  const lastValidatedValuesRef = useRef<Object>({})
+  const lastValidatedTypeRef = useRef<Object>({})
 
   const arrayFields = useArrayFields(validatorsMap)
   const childFields = useChildFields(validatorsMap)
@@ -39,7 +68,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
   )
 
   const setLoader = useCallback(
-    (name, loader) => {
+    (name: string, loader: boolean) => {
       dispatch({
         type: 'set loader',
         name,
@@ -49,7 +78,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
     [dispatch]
   )
   const setError = useCallback(
-    (name, error) => {
+    (name: string, error: unknown) => {
       dispatch({
         type: 'set error',
         name,
@@ -63,7 +92,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
     setLoader,
     setError,
     change: useCallback(
-      (name, value) => {
+      // todo: возвращаемое значение
+      (name: string, value: unknown) => {
         dispatch({
           type: 'change',
           name,
@@ -77,8 +107,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
           name,
           validatorsMap,
           childFields,
-          stateRef,
-          arrayFields
+          arrayFields,
+          stateRef
         )
         return execValidateObject(
           fieldsValidateOnChange,
@@ -104,7 +134,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       ]
     ),
     blur: useCallback(
-      (name) => {
+      // todo: возвращаемое значение
+      (name: string) => {
         dispatch({
           type: 'enable validation',
           name,
@@ -114,8 +145,8 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
           name,
           validatorsMap,
           childFields,
-          stateRef,
-          arrayFields
+          arrayFields,
+          stateRef
         )
 
         const fieldsValidateOnBlur = getFieldsValidateOnBlur(
@@ -150,7 +181,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       ]
     ),
     submit: useCallback(
-      async (e) => {
+      async (e: SyntheticEvent): Promise<unknown> => {
         e.preventDefault()
         dispatch({
           type: 'submit start',
@@ -203,7 +234,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       ]
     ),
     reset: useCallback(
-      (initValues) => {
+      (initValues: Object): void => {
         dispatch({
           type: 'reset',
           initValues,
@@ -212,7 +243,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       [dispatch]
     ),
     insert: useCallback(
-      (name, i, value) => {
+      (name: string, i: number, value: unknown): void => {
         dispatch({
           type: 'array insert',
           name,
@@ -223,7 +254,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       [dispatch]
     ),
     replace: useCallback(
-      (name, from, to) => {
+      (name: string, from: number, to: number): void => {
         dispatch({
           type: 'array replace',
           name,
@@ -234,7 +265,7 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
       [dispatch]
     ),
     remove: useCallback(
-      (name, i) => {
+      (name: string, i: number): void => {
         dispatch({
           type: 'array remove',
           name,
@@ -248,7 +279,13 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
   actionsRef.current = actions
 
   const Form = useCallback(
-    function Form({ children, ...restProps }) {
+    function Form({
+      children,
+      ...restProps
+    }: {
+      children: ReactNode
+      restProps?: FormHTMLAttributes<HTMLFormElement>
+    }) {
       return (
         <form {...restProps}>
           <FormContext.Provider
@@ -269,23 +306,23 @@ export function useForm({ initValues, validators: validatorsMap, submit }) {
 }
 
 function execValidateObject(
-  validateObj,
-  validateType,
-  lastValidatedTypeRef,
-  arrayFields,
-  stateRef,
-  replacementsDuringValidationRef,
-  lastValidatedValuesRef,
-  lastValidateObjRef,
-  setLoader,
-  setError
+  validateObj: ValidateObj,
+  validateType: ValidateType,
+  lastValidatedTypeRef: { current: Record<string, ValidateType> },
+  arrayFields: string[],
+  stateRef: { current: State },
+  replacementsDuringValidationRef: { current: ReplacementDuringValidation[][] },
+  lastValidatedValuesRef: { current: Record<string, unknown[]> },
+  lastValidateObjRef: { current: ValidateObj },
+  setLoader: (name: string, val: boolean) => void,
+  setError: (name: string, val: unknown) => void
 ) {
-  const fieldsErrors = {}
-  const fieldsPromises = {}
+  const fieldsErrors: Record<string, unknown> = {}
+  const fieldsPromises: Record<string, unknown | Promise<unknown>> = {}
 
   // если во время валидации произошли изменения индексов в массивах
   // применяем их к fieldName внутри валидаций
-  const replacementsDuringValidation = []
+  const replacementsDuringValidation: ReplacementDuringValidation[] = []
   replacementsDuringValidationRef.current.push(replacementsDuringValidation)
   function removeReplacementsDuringValidation() {
     const i = replacementsDuringValidationRef.current.indexOf(
@@ -329,14 +366,14 @@ function execValidateObject(
 
     // для поля один промис
     // выполняем его при первой ошибке, либо при завершении последней валидации
-    let resolveValidationPromise
+    let resolveValidationPromise: (val: unknown) => void
     let promisesCount = 0
 
     for (let i = 0; i < validators.length; i++) {
       const validator = validators[i]
-      const result = validator(...values)
+      const result = validator(values[0], ...values.slice(1))
 
-      if (result?.then) {
+      if ((result as Promise<unknown>)?.then) {
         if (!promisesCount) setLoader(fieldName, true)
         promisesCount++
         if (!fieldsPromises[fieldName]) {
@@ -346,7 +383,7 @@ function execValidateObject(
           })
         }
         // eslint-disable-next-line no-loop-func
-        result.then((error) => {
+        ;(result as Promise<unknown>).then((error: unknown) => {
           const arrayOfFieldName = arrayFields.find((arrField) =>
             fieldName.startsWith(arrField)
           )
@@ -391,11 +428,13 @@ function execValidateObject(
             setLoader(fieldName, false)
             removeReplacementsDuringValidation()
           }
+          // @ts-ignore
           if (resolveValidationPromise) resolveValidationPromise(result)
           else fieldsPromises[fieldName] = result
           continue outer
         } else if (!promisesCount && i === validators.length - 1) {
           setError(fieldName, null)
+          // @ts-ignore
           if (resolveValidationPromise) resolveValidationPromise(null)
           else fieldsPromises[fieldName] = null
         }
@@ -406,64 +445,89 @@ function execValidateObject(
   return Promise.all(promisesArr)
 }
 
-export const FormContext = createContext()
+export const FormContext = createContext<State & { actions: Actions }>({
+  values: {},
+  submitting: false,
+  submitted: false,
+  failedError: false,
+  validationEnabled: {},
+  errors: {},
+  loaders: {},
+  actions: {
+    setLoader: () => {},
+    setError: () => {},
+    change: () => {},
+    blur: () => {},
+    submit: (e: SyntheticEvent) => Promise.resolve(),
+    reset: () => {},
+    insert: () => {},
+    replace: () => {},
+    remove: () => {},
+  },
+})
 
-function updNameWithArrayReplacements(fieldName, replacementsDuringValidation) {
-  return replacementsDuringValidation.reduce((nextFieldName, arrayAction) => {
-    if (!nextFieldName) return nextFieldName
-    if (!fieldName.startsWith(arrayAction.name)) return nextFieldName
+function updNameWithArrayReplacements(
+  fieldName: string,
+  replacementsDuringValidation: ReplacementDuringValidation[]
+): string {
+  return replacementsDuringValidation.reduce<string>(
+    (nextFieldName, arrayAction) => {
+      if (!nextFieldName) return nextFieldName
+      if (!fieldName.startsWith(arrayAction.name)) return nextFieldName
 
-    const { num, fieldEndPart } = splitFieldOfArrayName(
-      arrayAction.name,
-      nextFieldName
-    )
+      const { num, fieldEndPart } = splitFieldOfArrayName(
+        arrayAction.name,
+        nextFieldName
+      )
 
-    switch (arrayAction.type) {
-      case 'array remove': {
-        const { i } = arrayAction.args
-        if (num === i) return null
-        else if (num > i)
-          return `${arrayAction.name}.${num - 1}.${fieldEndPart}`
-        return nextFieldName
-      }
-      case 'array replace': {
-        const { from, to } = arrayAction.args
-        if (num === from) return `${arrayAction.name}.${to}.${fieldEndPart}`
-
-        if (from < to) {
-          // decrement полей от from + 1 до to
-          // остальные поля без изменений
-          if (num > from && num <= to) {
+      switch (arrayAction.type) {
+        case 'array remove': {
+          const { i } = arrayAction.args as { i: number }
+          if (num === i) return ''
+          else if (num > i)
             return `${arrayAction.name}.${num - 1}.${fieldEndPart}`
-          }
-        } else {
-          // increment полей от to до from - 1
-          // остальные поля без изменений
-          if (num >= to && num < from) {
-            return `${arrayAction.name}.${num + 1}.${fieldEndPart}`
-          }
+          return nextFieldName
         }
-        return nextFieldName
+        case 'array replace': {
+          const { from, to } = arrayAction.args as { from: number; to: number }
+          if (num === from) return `${arrayAction.name}.${to}.${fieldEndPart}`
+
+          if (from < to) {
+            // decrement полей от from + 1 до to
+            // остальные поля без изменений
+            if (num > from && num <= to) {
+              return `${arrayAction.name}.${num - 1}.${fieldEndPart}`
+            }
+          } else {
+            // increment полей от to до from - 1
+            // остальные поля без изменений
+            if (num >= to && num < from) {
+              return `${arrayAction.name}.${num + 1}.${fieldEndPart}`
+            }
+          }
+          return nextFieldName
+        }
+        case 'array insert': {
+          const { i } = arrayAction.args as { i: number }
+          if (num >= i) return `${arrayAction.name}.${num + 1}.${fieldEndPart}`
+          return nextFieldName
+        }
+        default:
+          return nextFieldName
       }
-      case 'array insert': {
-        const { i } = arrayAction.args
-        if (num >= i) return `${arrayAction.name}.${num + 1}.${fieldEndPart}`
-        return nextFieldName
-      }
-      default:
-        return nextFieldName
-    }
-  }, fieldName)
+    },
+    fieldName
+  )
 }
 
-function useArrayFields(validators) {
+function useArrayFields(validators: ValidatorsMap): string[] {
   return useMemo(() => {
-    const arrayFields = []
+    const arrayFields: string[] = []
 
-    iterateDeep(validators, (path, val) => {
-      if (val?.[ARRAY_FIELD]) {
+    iterateDeep(validators, (path: (string | symbol)[], val: unknown) => {
+      if (val?.[ARRAY_FIELD as keyof typeof val]) {
         const arrayFieldName = path
-          .map((x) => (x === VALIDATOR_OBJ ? 'i' : x))
+          .map((x: string | symbol) => (x === VALIDATOR_OBJ ? 'i' : x))
           .join('.')
         arrayFields.push(arrayFieldName)
       }
@@ -473,38 +537,43 @@ function useArrayFields(validators) {
   }, [validators])
 }
 
-function useChildFields(validators) {
+function useChildFields(validators: ValidatorsMap): ChildFields {
   return useMemo(() => {
-    const childFields = {}
+    const childFields: Record<string, string[]> = {}
 
-    iterateDeep(validators, (pathWithValidatorObjSymbol, val) => {
-      if (val?.[ADVANCED_VALIDATOR]) {
-        const realVal = val[VALIDATOR_OBJ]
-        const realPath = pathWithValidatorObjSymbol.map((key) =>
-          key === VALIDATOR_OBJ ? 'i' : key
-        )
+    iterateDeep(
+      validators,
+      (pathWithValidatorObjSymbol: (string | symbol)[], val: unknown) => {
+        if (val?.[ADVANCED_VALIDATOR as keyof typeof val]) {
+          const realVal = val[VALIDATOR_OBJ as keyof typeof val]
+          const realPath = pathWithValidatorObjSymbol.map((key) =>
+            key === VALIDATOR_OBJ ? 'i' : key
+          )
 
-        realVal.PARENTS?.forEach?.((parentName) => {
-          let childName = realPath.join('.')
+          ;(
+            realVal?.['PARENTS' as keyof typeof realVal] as string[]
+          )?.forEach?.((parentName) => {
+            let childName = realPath.join('.')
 
-          if (!childFields[parentName]) childFields[parentName] = [childName]
-          else childFields.push(childName)
-        })
+            if (!childFields[parentName]) childFields[parentName] = [childName]
+            else childFields[parentName].push(childName)
+          })
+        }
       }
-    })
+    )
 
     return childFields
   }, [validators])
 }
 
-export function useField(name) {
+export function useField(name: string) {
   const { values, errors, loaders, actions } = useContext(FormContext)
 
   return {
     value: getFieldFromInst(name, values),
     error: errors[name],
     loading: loaders[name],
-    onChange: function onChange(value) {
+    onChange: function onChange(value: unknown) {
       actions.change(name, value)
     },
     onBlur: function onBlur() {
@@ -513,12 +582,12 @@ export function useField(name) {
   }
 }
 
-export function useSubformsArray(name) {
+export function useSubformsArray(name: string) {
   const { values, actions } = useContext(FormContext)
   return {
     value: getFieldFromInst(name, values),
-    remove: (i) => actions.remove(name, i),
-    replace: (from, to) => actions.replace(name, from, to),
-    insert: (i, value) => actions.insert(name, i, value),
+    remove: (i: number) => actions.remove(name, i),
+    replace: (from: number, to: number) => actions.replace(name, from, to),
+    insert: (i: number, value: unknown) => actions.insert(name, i, value),
   }
 }

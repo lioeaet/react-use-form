@@ -5,7 +5,7 @@ export const getInitState = (initValues) => ({
   values: initValues,
   submitting: false,
   submitted: false,
-  failedError: null,
+  failedError: false,
   validationEnabled: {},
   errors: {},
   loaders: {},
@@ -28,7 +28,7 @@ export function getReducer(
         return {
           ...state,
           values: nextValues,
-          failedError: null,
+          failedError: false,
         }
       }
       case 'enable validation': {
@@ -219,7 +219,7 @@ export function getReducer(
           validationEnabled: nextValidationEnabled,
           submitting: true,
           submitted: false,
-          failedError: null,
+          failedError: false,
         }
       }
       case 'submit success': {

@@ -6,20 +6,27 @@ import {
   getLastArrayOfFieldName,
   getFieldNameWithoutI,
 } from './arrays'
+import {
+  ChildFields,
+  State,
+  StateRef,
+  ValidateObj,
+  ValidatorsMap,
+} from './types'
 
 export const ADVANCED_VALIDATOR = Symbol('advanced validator')
 export const ARRAY_FIELD = Symbol('array field')
 export const VALIDATOR_OBJ = Symbol('validator obj')
 
 export function getFieldsValidateOnChange(
-  name,
-  validatorsMap,
-  childFields,
-  stateRef,
-  arrayFields
+  name: string,
+  validatorsMap: ValidatorsMap,
+  childFields: ChildFields,
+  arrayFields: string[],
+  stateRef: StateRef
 ) {
   const { validationEnabled } = stateRef.current
-  const fieldsValidate = {}
+  const fieldsValidate: ValidateObj = {}
 
   if (validationEnabled[name]) {
     const validators = getFieldValidatorsOnChange(
@@ -57,14 +64,14 @@ export function getFieldsValidateOnChange(
 }
 
 export function getFieldsValidateOnBlur(
-  name,
-  validatorsMap,
-  childFields,
-  arrayFields,
-  stateRef
+  name: string,
+  validatorsMap: ValidatorsMap,
+  childFields: ChildFields,
+  arrayFields: string[],
+  stateRef: StateRef
 ) {
   const { validationEnabled } = stateRef.current
-  const fieldsValidate = {}
+  const fieldsValidate: ValidateObj = {}
 
   fieldsValidate[name] = getValidateFieldOnBlur(
     name,
@@ -99,11 +106,11 @@ export function getFieldsValidateOnBlur(
 // пройтись по всем полям, добавляя валидаторы, если есть
 // пройтись по всем валидаторам и добавить их для полей, которых нет в values
 export function getFieldsValidateOnSubmit(
-  validatorsMap,
-  arrayFields,
-  stateRef
+  validatorsMap: ValidatorsMap,
+  arrayFields: string[],
+  stateRef: StateRef
 ) {
-  const fieldsValidate = {}
+  const fieldsValidate: ValidateObj = {}
   const arraySubformsValidate = {}
 
   iterateValidationMap(validatorsMap, (path, val) => {
