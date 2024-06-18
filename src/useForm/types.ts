@@ -1,7 +1,7 @@
 import { SyntheticEvent } from 'react'
 
 export type State = {
-  values: Object
+  values: Record<string, unknown>
   submitting: boolean
   submitted: boolean
   failedError: boolean
@@ -72,7 +72,7 @@ export type Action = {
   value?: unknown
   error?: unknown
   loader?: boolean
-  initValues?: Object
+  initValues?: Record<string, unknown>
   i?: number
   from?: number
   to?: number

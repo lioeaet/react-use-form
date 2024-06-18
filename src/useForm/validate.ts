@@ -280,9 +280,9 @@ function getConcreteArrayFieldsValidators(
       ? current
       : currentPath,
     stateRef.current.values
-  )
+  ) as unknown[]
 
-  fields.forEach((_: unknown, index: number) => {
+  fields.forEach((_, index) => {
     let newPath
     if (currentPath && current) {
       newPath = `${currentPath}.${current}.${index}`

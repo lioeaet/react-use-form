@@ -8,7 +8,7 @@ import {
 } from './types'
 import { MutableRefObject } from 'react'
 
-export const getInitState = (initValues: Object) => ({
+export const getInitState = (initValues: Record<string, unknown>): State => ({
   values: initValues,
   submitting: false,
   submitted: false,
@@ -32,7 +32,7 @@ export function getReducer(
         const { name, value } = action
 
         const nextValues = clone(state.values)
-        setFieldToInst(name, value, nextValues)
+        setFieldToInst(name!, value, nextValues)
 
         return {
           ...state,
@@ -78,10 +78,10 @@ export function getReducer(
       case 'array insert': {
         const { name, value, i } = action
         const nextState = clone(state)
-        const array = getFieldFromInst(name, state.values)
+        const array = getFieldFromInst(name!, state.values) as unknown[]
         const nextArray = [...array.slice(0, i), value, ...array.slice(i)]
 
-        setFieldToInst(name, nextArray, nextState.values)
+        setFieldToInst(name!, nextArray, nextState.values)
 
         const nextLastValidatedValues = {}
         const nextLastValidateObj = {}
@@ -114,7 +114,7 @@ export function getReducer(
       case 'array replace': {
         const { name, from, to } = action
         const nextState = clone(state)
-        const array = getFieldFromInst(name, state.values)
+        const array = getFieldFromInst(name!, state.values) as unknown[]
         let nextArray
         if (from! < to!) {
           nextArray = [
@@ -132,7 +132,7 @@ export function getReducer(
           ]
         }
 
-        setFieldToInst(name, nextArray, nextState.values)
+        setFieldToInst(name!, nextArray, nextState.values)
 
         const nextLastValidatedValues = {}
         const nextLastValidateObj = {}
@@ -165,12 +165,12 @@ export function getReducer(
       case 'array remove': {
         const { name, i } = action
         const nextState = clone(state)
-        const array = getFieldFromInst(name, state.values)
+        const array = getFieldFromInst(name!, state.values) as unknown[]
         // почистить loaders, errors
         // переместить поля в loaders, errors и validationEnabled после i на 1 field вверх
         // переместить поля в lastValidatedValues и lastValidateObj после i на 1 вверх
         setFieldToInst(
-          name,
+          name!,
           array.filter((_: unknown, j: number) => i !== j),
           nextState.values
         )
@@ -204,7 +204,7 @@ export function getReducer(
       }
       case 'submit start': {
         const nextValidationEnabled: Record<string, boolean> = {}
-        iterateDeep(state.values, (path: string[], val: unknown) => {
+        iterateDeep(state.values, (path) => {
           const fieldName = path.join('.')
           const possibleArrayFieldName = path.join('.')
           const possibleArrayWithElemFieldName = path

@@ -524,10 +524,10 @@ function useArrayFields(validators: ValidatorsMap): string[] {
   return useMemo(() => {
     const arrayFields: string[] = []
 
-    iterateDeep(validators, (path: (string | symbol)[], val: unknown) => {
+    iterateDeep(validators, (path, val) => {
       if (val?.[ARRAY_FIELD as keyof typeof val]) {
         const arrayFieldName = path
-          .map((x: string | symbol) => (x === VALIDATOR_INSTANCE ? 'i' : x))
+          .map((x) => (x === VALIDATOR_INSTANCE ? 'i' : x))
           .join('.')
         arrayFields.push(arrayFieldName)
       }
@@ -541,26 +541,23 @@ function useChildFields(validators: ValidatorsMap): ChildFields {
   return useMemo(() => {
     const childFields: Record<string, string[]> = {}
 
-    iterateDeep(
-      validators,
-      (pathWithValidatorObjSymbol: (string | symbol)[], val: unknown) => {
-        if (val?.[ADVANCED_VALIDATOR as keyof typeof val]) {
-          const realVal = val[VALIDATOR_INSTANCE as keyof typeof val]
-          const realPath = pathWithValidatorObjSymbol.map((key) =>
-            key === VALIDATOR_INSTANCE ? 'i' : key
-          )
+    iterateDeep(validators, (pathWithValidatorObjSymbol, val) => {
+      if (val?.[ADVANCED_VALIDATOR as keyof typeof val]) {
+        const realVal = val[VALIDATOR_INSTANCE as keyof typeof val]
+        const realPath = pathWithValidatorObjSymbol.map((key) =>
+          key === VALIDATOR_INSTANCE ? 'i' : key
+        )
 
-          ;(
-            realVal?.['PARENTS' as keyof typeof realVal] as string[]
-          )?.forEach?.((parentName) => {
+        ;(realVal?.['PARENTS' as keyof typeof realVal] as string[])?.forEach?.(
+          (parentName) => {
             let childName = realPath.join('.')
 
             if (!childFields[parentName]) childFields[parentName] = [childName]
             else childFields[parentName].push(childName)
-          })
-        }
+          }
+        )
       }
-    )
+    })
 
     return childFields
   }, [validators])
