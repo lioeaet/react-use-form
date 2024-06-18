@@ -1,4 +1,4 @@
-import { VALIDATOR_OBJ } from './validate'
+import { VALIDATOR_INSTANCE } from './validate'
 
 export function iterateDeep(value, cb, path = []) {
   cb(path, value)
@@ -36,9 +36,9 @@ export function getFieldFromInst(name, inst) {
 
 export function getFieldFromValidatorsMap(name, validatorsMap) {
   return name.split('.').reduce((current, pathName) => {
-    if (current?.[VALIDATOR_OBJ]) {
-      while (current?.[VALIDATOR_OBJ]) {
-        current = current?.[VALIDATOR_OBJ]
+    if (current?.[VALIDATOR_INSTANCE]) {
+      while (current?.[VALIDATOR_INSTANCE]) {
+        current = current?.[VALIDATOR_INSTANCE]
       }
     }
     return current?.[pathName]

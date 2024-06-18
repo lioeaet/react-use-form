@@ -39,19 +39,28 @@ export type ValidatorFn<T, Args extends unknown[] = unknown[]> = (
   ...args: Args
 ) => unknown
 
-type Validator<T> = ValidatorFn<T> | ValidatorFn<T>[]
+export type AdvancedValidator<T> = {
+  CHANGE?: ValidatorFn<T> | ValidatorFn<T>[]
+  BLUR?: ValidatorFn<T> | ValidatorFn<T>[]
+  SUBMIT?: ValidatorFn<T> | ValidatorFn<T>[]
+  PARENTS?: string[]
+}
+
+export type Validator<T> =
+  | ValidatorFn<T>
+  | ValidatorFn<T>[]
+  | AdvancedValidator<T>
 
 export type ValidatorsMap = {
   [key: string | symbol]: ValidatorsMap | ValidatorsMap[] | Validator<unknown>
 }
 
-export type ValidateObj = Record<
-  string,
-  {
-    validators: ValidatorFn<unknown>[]
-    argsFields: string[]
-  }
->
+export type ValidateObjItem = {
+  validators: ValidatorFn<unknown>[]
+  argsFields: string[]
+}
+
+export type ValidateObj = Record<string, ValidateObjItem>
 
 export type ChildFields = Record<string, string[]>
 

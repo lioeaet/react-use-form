@@ -12,7 +12,7 @@ import { useReducerWithRef } from './useReducerWithRef'
 import {
   ADVANCED_VALIDATOR,
   ARRAY_FIELD,
-  VALIDATOR_OBJ,
+  VALIDATOR_INSTANCE,
   getFieldsValidateOnChange,
   getFieldsValidateOnBlur,
   getFieldsValidateOnSubmit,
@@ -48,11 +48,11 @@ export function useForm({
   >([])
 
   // для ликвидации состояния гонки
-  const lastValidateObjRef = useRef<Object>({})
+  const lastValidateObjRef = useRef<ValidateObj>({})
 
   // для отмены валидации уже валидированных значений
-  const lastValidatedValuesRef = useRef<Object>({})
-  const lastValidatedTypeRef = useRef<Object>({})
+  const lastValidatedValuesRef = useRef<Record<string, unknown[]>>({})
+  const lastValidatedTypeRef = useRef<Record<string, ValidateType>>({})
 
   const arrayFields = useArrayFields(validatorsMap)
   const childFields = useChildFields(validatorsMap)
@@ -527,7 +527,7 @@ function useArrayFields(validators: ValidatorsMap): string[] {
     iterateDeep(validators, (path: (string | symbol)[], val: unknown) => {
       if (val?.[ARRAY_FIELD as keyof typeof val]) {
         const arrayFieldName = path
-          .map((x: string | symbol) => (x === VALIDATOR_OBJ ? 'i' : x))
+          .map((x: string | symbol) => (x === VALIDATOR_INSTANCE ? 'i' : x))
           .join('.')
         arrayFields.push(arrayFieldName)
       }
@@ -545,9 +545,9 @@ function useChildFields(validators: ValidatorsMap): ChildFields {
       validators,
       (pathWithValidatorObjSymbol: (string | symbol)[], val: unknown) => {
         if (val?.[ADVANCED_VALIDATOR as keyof typeof val]) {
-          const realVal = val[VALIDATOR_OBJ as keyof typeof val]
+          const realVal = val[VALIDATOR_INSTANCE as keyof typeof val]
           const realPath = pathWithValidatorObjSymbol.map((key) =>
-            key === VALIDATOR_OBJ ? 'i' : key
+            key === VALIDATOR_INSTANCE ? 'i' : key
           )
 
           ;(

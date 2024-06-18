@@ -7,16 +7,18 @@ import {
   getFieldNameWithoutI,
 } from './arrays'
 import {
+  AdvancedValidator,
   ChildFields,
-  State,
   StateRef,
   ValidateObj,
+  ValidateObjItem,
+  Validator,
   ValidatorsMap,
 } from './types'
 
 export const ADVANCED_VALIDATOR = Symbol('advanced validator')
 export const ARRAY_FIELD = Symbol('array field')
-export const VALIDATOR_OBJ = Symbol('validator obj')
+export const VALIDATOR_INSTANCE = Symbol('validator instance')
 
 export function getFieldsValidateOnChange(
   name: string,
@@ -24,12 +26,12 @@ export function getFieldsValidateOnChange(
   childFields: ChildFields,
   arrayFields: string[],
   stateRef: StateRef
-) {
+): ValidateObj {
   const { validationEnabled } = stateRef.current
   const fieldsValidate: ValidateObj = {}
 
   if (validationEnabled[name]) {
-    const validators = getFieldValidatorsOnChange(
+    const validators = getFieldValidateObjOnChange(
       name,
       validatorsMap,
       arrayFields
@@ -50,7 +52,7 @@ export function getFieldsValidateOnChange(
         name = replaceIOnNum(name, indexes)
       }
       if (validationEnabled[name]) {
-        const validators = getFieldValidatorsOnChange(
+        const validators = getFieldValidateObjOnChange(
           name,
           validatorsMap,
           arrayFields
@@ -69,11 +71,11 @@ export function getFieldsValidateOnBlur(
   childFields: ChildFields,
   arrayFields: string[],
   stateRef: StateRef
-) {
+): ValidateObj {
   const { validationEnabled } = stateRef.current
   const fieldsValidate: ValidateObj = {}
 
-  fieldsValidate[name] = getValidateFieldOnBlur(
+  fieldsValidate[name] = getFieldValidateObjOnBlur(
     name,
     validatorsMap,
     arrayFields
@@ -90,7 +92,7 @@ export function getFieldsValidateOnBlur(
         name = replaceIOnNum(name, indexes)
       }
       if (validationEnabled[name]) {
-        fieldsValidate[name] = getValidateFieldOnBlur(
+        fieldsValidate[name] = getFieldValidateObjOnBlur(
           name,
           validatorsMap,
           arrayFields
@@ -109,96 +111,54 @@ export function getFieldsValidateOnSubmit(
   validatorsMap: ValidatorsMap,
   arrayFields: string[],
   stateRef: StateRef
-) {
+): ValidateObj {
   const fieldsValidate: ValidateObj = {}
-  const arraySubformsValidate = {}
+  const abstractArrayFieldsValidators: Record<string, Validator<unknown>> = {}
 
-  iterateValidationMap(validatorsMap, (path, val) => {
+  iterateValidatorsMap(validatorsMap, (path, val) => {
     const name = path.join('.')
-    const parentArrayName = arrayFields.find(
-      (arrayFieldName) => path.join('.') === arrayFieldName
-    )
+    const parentArrayName = getLastArrayOfFieldName(name, arrayFields)
     if (!parentArrayName) {
-      fieldsValidate[name] = getFieldValidateOnSubmit(name, val, arrayFields)
+      fieldsValidate[name] = getFieldValidateObjOnSubmit(name, val, arrayFields)
     } else {
-      arraySubformsValidate[name] = val
+      abstractArrayFieldsValidators[name] = val
     }
   })
 
-  for (const arrayName in arraySubformsValidate) {
-    const value = getFieldFromInst(arrayName, stateRef.current.values)
-    for (let i = 0; i < value.length; i++) {
-      const subformValidationMap = arraySubformsValidate[arrayName]
-      // удаляем этот флаг для итераций через iterateValidationMap
-      // после выполнения функции возвращаем
-      delete subformValidationMap[ARRAY_FIELD]
+  for (const abstractFieldName in abstractArrayFieldsValidators) {
+    const path = abstractFieldName.replaceAll('.i.i.', '.i..i.').split('.i.')
 
-      iterateValidationMap(subformValidationMap, (path, val) => {
-        const fullName = `${arrayName}.${i}.${path.join('.')}`
-        fieldsValidate[fullName] = getFieldValidateOnSubmit(
-          fullName,
-          val,
-          arrayFields
-        )
-      })
-      subformValidationMap[ARRAY_FIELD] = true
+    const concreteArrayFieldsValidators = getConcreteArrayFieldsValidators(
+      path,
+      stateRef,
+      abstractArrayFieldsValidators[abstractFieldName]
+    )
+    for (const arrayFieldName in concreteArrayFieldsValidators) {
+      fieldsValidate[arrayFieldName] = getFieldValidateObjOnSubmit(
+        arrayFieldName,
+        concreteArrayFieldsValidators[arrayFieldName],
+        arrayFields
+      )
     }
   }
 
   return fieldsValidate
 }
 
-function getFieldValidateOnSubmit(name, val, arrayFields) {
-  if (Array.isArray(val)) {
-    return {
-      validators: val,
-      argsFields: [name],
-    }
-  } else if (typeof val === 'function') {
-    return {
-      validators: [val],
-      argsFields: [name],
-    }
-  } else {
-    const validators = []
-    if (Array.isArray(val.CHANGE)) {
-      validators.push(...val.CHANGE)
-    } else if (typeof val.CHANGE === 'function') {
-      validators.push(val.CHANGE)
-    }
-    if (Array.isArray(val.BLUR)) {
-      validators.push(...val.BLUR)
-    } else if (typeof val.BLUR === 'function') {
-      validators.push(val.BLUR)
-    }
-    if (Array.isArray(val.SUBMIT)) {
-      validators.push(...val.SUBMIT)
-    } else if (typeof val.SUBMIT === 'function') {
-      validators.push(val.SUBMIT)
-    }
-
-    return {
-      validators,
-      argsFields: [
-        name,
-        ...val.PARENTS?.map((parentName) => {
-          return replaceIOnNumIfInArray(arrayFields, parentName, name)
-        }),
-      ],
-    }
-  }
-}
-
-function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
+function getFieldValidateObjOnChange(
+  name: string,
+  validatorsMap: ValidatorsMap,
+  arrayFields: string[]
+): ValidateObjItem | undefined {
   // array.1.name.1.oki -> array.name.oki
   const validatorName = getValidatorName(name, arrayFields)
   const validator = getFieldFromValidatorsMap(validatorName, validatorsMap)
 
   if (validator?.[ADVANCED_VALIDATOR]) {
-    const validatorObj = validator[VALIDATOR_OBJ]
+    const validatorObj = validator[VALIDATOR_INSTANCE]
     // array.i.name -> array.1.name
     const parentsWithNumInArrays =
-      validatorObj.PARENTS?.map((parentName) => {
+      validatorObj.PARENTS?.map((parentName: string) => {
         return replaceIOnNumIfInArray(arrayFields, parentName, name)
       }) || []
 
@@ -223,12 +183,16 @@ function getFieldValidatorsOnChange(name, validatorsMap, arrayFields) {
     }
 }
 
-function getValidateFieldOnBlur(name, validatorsMap, arrayFields) {
+function getFieldValidateObjOnBlur(
+  name: string,
+  validatorsMap: ValidatorsMap,
+  arrayFields: string[]
+): ValidateObjItem {
   // array.1.name.1.oki -> array.name.oki
   const validatorName = getValidatorName(name, arrayFields)
   const validator = getFieldFromValidatorsMap(validatorName, validatorsMap)
   if (validator?.[ADVANCED_VALIDATOR]) {
-    const validatorObj = validator[VALIDATOR_OBJ]
+    const validatorObj = validator[VALIDATOR_INSTANCE]
 
     return {
       validators:
@@ -239,7 +203,7 @@ function getValidateFieldOnBlur(name, validatorsMap, arrayFields) {
           : [],
       argsFields: [
         name,
-        ...validatorObj.PARENTS?.map((parentName) => {
+        ...validatorObj.PARENTS?.map((parentName: string) => {
           return replaceIOnNumIfInArray(arrayFields, parentName, name)
         }),
       ],
@@ -249,16 +213,114 @@ function getValidateFieldOnBlur(name, validatorsMap, arrayFields) {
   return { validators: [], argsFields: [name] }
 }
 
-function iterateValidationMap(value, cb, path = []) {
+function getFieldValidateObjOnSubmit(
+  name: string,
+  validator: Validator<unknown>,
+  arrayFields: string[]
+): ValidateObjItem {
+  if (Array.isArray(validator)) {
+    return {
+      validators: validator,
+      argsFields: [name],
+    }
+  } else if (typeof validator === 'function') {
+    return {
+      validators: [validator],
+      argsFields: [name],
+    }
+  } else {
+    const validators = []
+    if (Array.isArray(validator.CHANGE)) {
+      validators.push(...validator.CHANGE)
+    } else if (typeof validator.CHANGE === 'function') {
+      validators.push(validator.CHANGE)
+    }
+    if (Array.isArray(validator.BLUR)) {
+      validators.push(...validator.BLUR)
+    } else if (typeof validator.BLUR === 'function') {
+      validators.push(validator.BLUR)
+    }
+    if (Array.isArray(validator.SUBMIT)) {
+      validators.push(...validator.SUBMIT)
+    } else if (typeof validator.SUBMIT === 'function') {
+      validators.push(validator.SUBMIT)
+    }
+
+    return {
+      validators,
+      argsFields: [
+        name,
+        ...(validator.PARENTS?.map((parentName) => {
+          return replaceIOnNumIfInArray(arrayFields, parentName, name)
+        }) || []),
+      ],
+    }
+  }
+}
+
+function getConcreteArrayFieldsValidators(
+  path: string[],
+  stateRef: StateRef,
+  validator: Validator<unknown>,
+  currentPath: string = '',
+  result: Record<string, Validator<unknown>> = {}
+): Record<string, Validator<unknown>> {
+  if (path.length === 1) {
+    currentPath += `.${path[0]}`
+    result[currentPath] = validator
+    return result
+  }
+
+  const [current, ...remainingPath] = path
+
+  const fields = getFieldFromInst(
+    currentPath && current
+      ? `${currentPath}.${current}`
+      : current
+      ? current
+      : currentPath,
+    stateRef.current.values
+  )
+
+  fields.forEach((_: unknown, index: number) => {
+    let newPath
+    if (currentPath && current) {
+      newPath = `${currentPath}.${current}.${index}`
+    } else if (current) {
+      newPath = `${current}.${index}`
+    } else {
+      newPath = `${currentPath}.${index}`
+    }
+
+    getConcreteArrayFieldsValidators(
+      remainingPath,
+      stateRef,
+      validator,
+      newPath,
+      result
+    )
+  })
+
+  return result
+}
+
+function iterateValidatorsMap(
+  value: ValidatorsMap,
+  cb: (path: string[], val: Validator<unknown>) => void,
+  path: string[] = []
+): void {
   if (isPlainObj(value)) {
     if (value[ADVANCED_VALIDATOR]) {
-      cb(path, value[VALIDATOR_OBJ])
+      cb(path, value[VALIDATOR_INSTANCE] as Validator<unknown>)
     } else {
-      for (let key in value) {
-        if (value[ARRAY_FIELD]) {
-          cb(path, value[VALIDATOR_OBJ])
-        } else {
-          iterateValidationMap(value[key], cb, [...path, key])
+      if (value[ARRAY_FIELD]) {
+        iterateValidatorsMap(value[VALIDATOR_INSTANCE] as ValidatorsMap, cb, [
+          ...path,
+          'i',
+        ])
+      } else {
+        for (let key in value) {
+          iterateValidatorsMap(value[key] as ValidatorsMap, cb, [...path, key])
         }
       }
     }
@@ -267,7 +329,7 @@ function iterateValidationMap(value, cb, path = []) {
   }
 }
 
-function getValidatorName(name, arrayFields) {
+function getValidatorName(name: string, arrayFields: string[]): string {
   // array.1.name.1.oki -> array.i.name
   const lastArrayOfFieldName = getLastArrayOfFieldName(name, arrayFields)
   if (lastArrayOfFieldName) {
@@ -276,8 +338,8 @@ function getValidatorName(name, arrayFields) {
   } else return name
 }
 
-export function joinFieldsValidate(...validators) {
-  const result = {}
+export function joinFieldsValidate(...validators: ValidateObj[]): ValidateObj {
+  const result: ValidateObj = {}
   for (let validator of validators) {
     for (let name in validator) {
       if (!result[name]) result[name] = validator[name]
@@ -291,12 +353,12 @@ export function joinFieldsValidate(...validators) {
   return result
 }
 
-export const advanced = (validatorObj) => ({
-  [VALIDATOR_OBJ]: validatorObj,
+export const advanced = (advancedValidator: AdvancedValidator<unknown>) => ({
+  [VALIDATOR_INSTANCE]: advancedValidator,
   [ADVANCED_VALIDATOR]: true,
 })
 
-export const array = (validatorObj) => ({
-  [VALIDATOR_OBJ]: validatorObj,
+export const array = (validatorsMap: ValidatorsMap) => ({
+  [VALIDATOR_INSTANCE]: validatorsMap,
   [ARRAY_FIELD]: true,
 })
