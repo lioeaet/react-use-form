@@ -1,4 +1,4 @@
-export function getLastArrayOfFieldName(name, arrayFields) {
+export function getLastArrayOfFieldName(name: string, arrayFields: string[]) {
   const path = name.split('.')
   const targetArrayFields = arrayFields.filter((arrayField) => {
     const arrayFieldPath = arrayField.split('.')
@@ -15,7 +15,7 @@ export function getLastArrayOfFieldName(name, arrayFields) {
 }
 
 // array.0.name.one.0.oki => array.i.name.one.i.oki, [0, 0], ['array', 'name.one', 'oki']
-export function splitOnPathWithIndexes(name, arrayFields) {
+export function splitOnPathWithIndexes(name: string, arrayFields: string[]) {
   const fieldPath = name.split('.')
   const lastArrayOfFieldName = getLastArrayOfFieldName(name, arrayFields)
   if (!lastArrayOfFieldName) return { path: [name], indexes: [] }
@@ -40,7 +40,7 @@ export function splitOnPathWithIndexes(name, arrayFields) {
   return { indexes, path }
 }
 
-export function replaceIOnNum(name, indexes) {
+export function replaceIOnNum(name: string, indexes: number[]) {
   let pathWithIndexes = []
   let currentIndex = 0
   const path = name.split('.')
@@ -57,13 +57,20 @@ export function replaceIOnNum(name, indexes) {
 
 // функция для вложенных форм
 // для трансформации 'array.i.oki.doki.i.poki' в argsFields['array.0.oki.doki.1.poki']
-export function replaceIOnNumIfInArray(arrayFields, name, fieldWithNumInArray) {
+export function replaceIOnNumIfInArray(
+  arrayFields: string[],
+  name: string,
+  fieldWithNumInArray: string
+) {
   const { indexes } = splitOnPathWithIndexes(fieldWithNumInArray, arrayFields)
   if (!indexes.length) return name
   return replaceIOnNum(name, indexes)
 }
 
-export function getFieldNameWithoutI(name, lastArrayOfFieldName) {
+export function getFieldNameWithoutI(
+  name: string,
+  lastArrayOfFieldName: string
+) {
   const path = name.split('.')
   const arrayFieldPath = lastArrayOfFieldName.split('.')
 
@@ -75,7 +82,7 @@ export function getFieldNameWithoutI(name, lastArrayOfFieldName) {
   return pathWithoutI.join('.')
 }
 
-export function splitFieldOfArrayName(arrayFieldName, name) {
+export function splitFieldOfArrayName(arrayFieldName: string, name: string) {
   const keyAfterArray = name.slice(arrayFieldName.length + 1)
   return {
     num: Number(keyAfterArray.slice(0, keyAfterArray.indexOf('.'))),

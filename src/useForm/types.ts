@@ -1,4 +1,4 @@
-import { SyntheticEvent } from 'react'
+import { MutableRefObject, SyntheticEvent } from 'react'
 
 export type State = {
   values: Record<string, unknown>
@@ -22,7 +22,7 @@ export type Actions = {
   change: (name: string, value: unknown) => void
   blur: (name: string) => void
   submit: (e: SyntheticEvent) => Promise<unknown>
-  reset: (initValues: Object) => void
+  reset: (initValues: Record<string, unknown>) => void
   insert: (name: string, i: number, value: unknown) => void
   replace: (name: string, from: number, to: number) => void
   remove: (name: string, i: number) => void
@@ -64,7 +64,7 @@ export type ValidateObj = Record<string, ValidateObjItem>
 
 export type ChildFields = Record<string, string[]>
 
-export type StateRef = { current: State }
+export type StateRef = MutableRefObject<State>
 
 export type Action = {
   type: string

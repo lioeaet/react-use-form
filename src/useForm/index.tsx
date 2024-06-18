@@ -22,6 +22,7 @@ import { splitFieldOfArrayName } from './arrays'
 import { iterateDeep, getFieldFromInst } from './util'
 import { getReducer, getInitState } from './reducer'
 import {
+  Action,
   Actions,
   ChildFields,
   InitValues,
@@ -57,7 +58,7 @@ export function useForm({
   const arrayFields = useArrayFields(validatorsMap)
   const childFields = useChildFields(validatorsMap)
 
-  const [state, dispatch, stateRef] = useReducerWithRef(
+  const [state, dispatch, stateRef] = useReducerWithRef<State, Action>(
     getReducer(
       replacementsDuringValidationRef,
       lastValidatedValuesRef,
@@ -234,7 +235,7 @@ export function useForm({
       ]
     ),
     reset: useCallback(
-      (initValues: Object): void => {
+      (initValues: Record<string, unknown>): void => {
         dispatch({
           type: 'reset',
           initValues,
