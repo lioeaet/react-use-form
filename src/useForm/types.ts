@@ -65,3 +65,15 @@ export type ValidateObj = Record<string, ValidateObjItem>
 export type ChildFields = Record<string, string[]>
 
 export type StateRef = { current: State }
+
+export type Action = {
+  type: string
+  name?: string
+  value?: unknown
+  error?: unknown
+  loader?: boolean
+  initValues?: Object
+  i?: number
+  from?: number
+  to?: number
+}

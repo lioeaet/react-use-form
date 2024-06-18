@@ -1,7 +1,14 @@
 import { clone, getFieldFromInst, setFieldToInst, iterateDeep } from './util'
 import { splitFieldOfArrayName } from './arrays'
+import {
+  Action,
+  ReplacementDuringValidation,
+  State,
+  ValidateObj,
+} from './types'
+import { MutableRefObject } from 'react'
 
-export const getInitState = (initValues) => ({
+export const getInitState = (initValues: Object) => ({
   values: initValues,
   submitting: false,
   submitted: false,
@@ -12,12 +19,14 @@ export const getInitState = (initValues) => ({
 })
 
 export function getReducer(
-  replacementsDuringValidationRef,
-  lastValidatedValuesRef,
-  lastValidateObjRef,
-  arrayFields
+  replacementsDuringValidationRef: MutableRefObject<
+    ReplacementDuringValidation[][]
+  >,
+  lastValidatedValuesRef: MutableRefObject<Record<string, unknown[]>>,
+  lastValidateObjRef: MutableRefObject<ValidateObj>,
+  arrayFields: string[]
 ) {
-  return function reducer(state, action) {
+  return function reducer(state: State, action: Action): State {
     switch (action.type) {
       case 'change': {
         const { name, value } = action
@@ -37,7 +46,7 @@ export function getReducer(
           ...state,
           validationEnabled: {
             ...state.validationEnabled,
-            [name]: true,
+            [name!]: true,
           },
         }
       }
@@ -47,7 +56,7 @@ export function getReducer(
           ...state,
           errors: {
             ...state.errors,
-            [name]: error,
+            [name!]: error,
           },
         }
       }
@@ -57,13 +66,13 @@ export function getReducer(
           ...state,
           loaders: {
             ...state.loaders,
-            [name]: loader,
+            [name!]: loader!,
           },
         }
       }
       case 'reset': {
         const { initValues } = action
-        return getInitState(initValues)
+        return getInitState(initValues!)
       }
       // array methods
       case 'array insert': {
@@ -78,8 +87,8 @@ export function getReducer(
         const nextLastValidateObj = {}
 
         incrementArrayNamesAfterI(
-          name,
-          i,
+          name!,
+          i!,
           state,
           nextState,
           lastValidatedValuesRef.current,
@@ -94,8 +103,8 @@ export function getReducer(
           (replacementsDuringValidation) => {
             replacementsDuringValidation.push({
               type: 'array insert',
-              name,
-              args: { i },
+              name: name!,
+              args: { i: i! },
             })
           }
         )
@@ -107,19 +116,19 @@ export function getReducer(
         const nextState = clone(state)
         const array = getFieldFromInst(name, state.values)
         let nextArray
-        if (from < to) {
+        if (from! < to!) {
           nextArray = [
             ...array.slice(0, from),
-            ...array.slice(from + 1, to + 1),
-            array[from],
-            ...array.slice(to + 1),
+            ...array.slice(from! + 1, to! + 1),
+            array[from!],
+            ...array.slice(to! + 1),
           ]
         } else {
           nextArray = [
             ...array.slice(0, to),
-            array[from],
+            array[from!],
             ...array.slice(to, from),
-            ...array.slice(from + 1),
+            ...array.slice(from! + 1),
           ]
         }
 
@@ -129,9 +138,9 @@ export function getReducer(
         const nextLastValidateObj = {}
 
         incrementOrDecrementNamesOnReplace(
-          name,
-          from,
-          to,
+          name!,
+          from!,
+          to!,
           state,
           nextState,
           lastValidatedValuesRef.current,
@@ -146,8 +155,8 @@ export function getReducer(
           (replacementsDuringValidation) => {
             replacementsDuringValidation.push({
               type: 'array replace',
-              name,
-              args: { from, to },
+              name: name!,
+              args: { from: from!, to: to! },
             })
           }
         )
@@ -162,7 +171,7 @@ export function getReducer(
         // переместить поля в lastValidatedValues и lastValidateObj после i на 1 вверх
         setFieldToInst(
           name,
-          array.filter((_, j) => i !== j),
+          array.filter((_: unknown, j: number) => i !== j),
           nextState.values
         )
 
@@ -170,8 +179,8 @@ export function getReducer(
         const nextLastValidateObj = {}
 
         decrementArrayNamesAfterI(
-          name,
-          i,
+          name!,
+          i!,
           state,
           nextState,
           lastValidatedValuesRef.current,
@@ -186,16 +195,16 @@ export function getReducer(
           (replacementsDuringValidation) => {
             replacementsDuringValidation.push({
               type: 'array remove',
-              name,
-              args: { i },
+              name: name!,
+              args: { i: i! },
             })
           }
         )
         return nextState
       }
       case 'submit start': {
-        const nextValidationEnabled = {}
-        iterateDeep(state.values, (path, val) => {
+        const nextValidationEnabled: Record<string, boolean> = {}
+        iterateDeep(state.values, (path: string[], val: unknown) => {
           const fieldName = path.join('.')
           const possibleArrayFieldName = path.join('.')
           const possibleArrayWithElemFieldName = path
@@ -243,15 +252,15 @@ export function getReducer(
 }
 
 function decrementArrayNamesAfterI(
-  arrayName,
-  i,
-  oldState,
-  newState,
-  oldLastValidatedValues,
-  newLastValidatedValues,
-  oldLastValidateObj,
-  newLastValidateObj
-) {
+  arrayName: string,
+  i: number,
+  oldState: State,
+  newState: State,
+  oldLastValidatedValues: Record<string, unknown>,
+  newLastValidatedValues: Record<string, unknown>,
+  oldLastValidateObj: ValidateObj,
+  newLastValidateObj: ValidateObj
+): State {
   const newLoaders = {}
   const newErrors = {}
   const newValidationEnabled = {}
@@ -280,7 +289,12 @@ function decrementArrayNamesAfterI(
   return newState
 }
 
-function processRemoveInInst(arrayName, i, oldSrc, newSrc) {
+function processRemoveInInst(
+  arrayName: string,
+  i: number,
+  oldSrc: Record<string, unknown>,
+  newSrc: Record<string, unknown>
+): void {
   for (const fieldName in oldSrc) {
     if (fieldName.startsWith(arrayName)) {
       const { num, fieldEndPart } = splitFieldOfArrayName(arrayName, fieldName)
@@ -299,15 +313,15 @@ function processRemoveInInst(arrayName, i, oldSrc, newSrc) {
 }
 
 function incrementArrayNamesAfterI(
-  arrayName,
-  i,
-  oldState,
-  newState,
-  oldLastValidatedValues,
-  newLastValidatedValues,
-  oldLastValidateObj,
-  newLastValidateObj
-) {
+  arrayName: string,
+  i: number,
+  oldState: State,
+  newState: State,
+  oldLastValidatedValues: Record<string, unknown>,
+  newLastValidatedValues: Record<string, unknown>,
+  oldLastValidateObj: ValidateObj,
+  newLastValidateObj: ValidateObj
+): void {
   const newLoaders = {}
   const newErrors = {}
   const newValidationEnabled = {}
@@ -334,7 +348,12 @@ function incrementArrayNamesAfterI(
   processInsertInInst(arrayName, i, oldLastValidateObj, newLastValidateObj)
 }
 
-function processInsertInInst(arrayName, i, oldSrc, newSrc) {
+function processInsertInInst(
+  arrayName: string,
+  i: number,
+  oldSrc: Record<string, unknown>,
+  newSrc: Record<string, unknown>
+) {
   for (const fieldName in oldSrc) {
     if (fieldName.startsWith(arrayName)) {
       const { num, fieldEndPart } = splitFieldOfArrayName(arrayName, fieldName)
@@ -351,15 +370,15 @@ function processInsertInInst(arrayName, i, oldSrc, newSrc) {
 }
 
 function incrementOrDecrementNamesOnReplace(
-  arrayName,
-  from,
-  to,
-  oldState,
-  newState,
-  oldLastValidatedValues,
-  newLastValidatedValues,
-  oldLastValidateObj,
-  newLastValidateObj
+  arrayName: string,
+  from: number,
+  to: number,
+  oldState: State,
+  newState: State,
+  oldLastValidatedValues: Record<string, unknown>,
+  newLastValidatedValues: Record<string, unknown>,
+  oldLastValidateObj: ValidateObj,
+  newLastValidateObj: ValidateObj
 ) {
   const newLoaders = {}
   const newErrors = {}
@@ -395,7 +414,13 @@ function incrementOrDecrementNamesOnReplace(
   )
 }
 
-function processReplaceInInst(arrayName, from, to, oldSrc, newSrc) {
+function processReplaceInInst(
+  arrayName: string,
+  from: number,
+  to: number,
+  oldSrc: Record<string, unknown>,
+  newSrc: Record<string, unknown>
+) {
   for (const fieldName in oldSrc) {
     if (fieldName.startsWith(arrayName)) {
       const { num, fieldEndPart } = splitFieldOfArrayName(arrayName, fieldName)
